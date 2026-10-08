@@ -1,168 +1,167 @@
 const { Pool } = require("pg");
 const crypto = require("crypto");
 
-let pool;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
-function db() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL در Vercel تنظیم نشده است.");
-  }
-
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-      max: 5
-    });
-  }
-
-  return pool;
+function cors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-auth-token");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
 }
 
 function send(res, status, data) {
-  return res.status(status).json(data);
+  cors(res);
+  res.status(status).json(data);
 }
 
 function hashPassword(password) {
-  return crypto
-    .createHash("sha256")
-    .update(String(password))
-    .digest("hex");
+  return crypto.createHash("sha256").update(String(password)).digest("hex");
 }
 
 function makeToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function num(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+function getToken(req) {
+  const auth = req.headers.authorization || "";
+  if (auth.startsWith("Bearer ")) return auth.substring(7);
+  return req.headers["x-auth-token"] || "";
 }
 
-function clean(v) {
-  return String(v ?? "").trim();
+async function db() {
+  return pool;
 }
 
-async function setup() {
-  const d = db();
+async function setupDatabase() {
+  const p = await db();
 
-  await d.query(`
+  await p.query(`
     CREATE TABLE IF NOT EXISTS shops (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      phone TEXT DEFAULT '',
       address TEXT DEFAULT '',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+      phone TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
   `);
 
-  await d.query(`
+  await p.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      username TEXT NOT NULL,
+      username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'owner'
-        CHECK (role IN ('owner','worker')),
-      token TEXT UNIQUE,
-      active BOOLEAN NOT NULL DEFAULT TRUE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE(shop_id, username)
-    );
+      role TEXT NOT NULL DEFAULT 'worker',
+      token TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
   `);
 
-  await d.query(`
+  await p.query(`
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       brand TEXT DEFAULT '',
       model TEXT DEFAULT '',
-      buy_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-      sell_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-      stock INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+      buy_price NUMERIC(18,2) DEFAULT 0,
+      sell_price NUMERIC(18,2) DEFAULT 0,
+      quantity NUMERIC(18,2) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
   `);
 
-  await d.query(`
+  await p.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id SERIAL PRIMARY KEY,
       shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      type TEXT NOT NULL CHECK (type IN ('buy','sell')),
-      quantity INTEGER NOT NULL CHECK (quantity > 0),
-      unit_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-      buy_price NUMERIC(18,2) NOT NULL DEFAULT 0,
-      total NUMERIC(18,2) NOT NULL DEFAULT 0,
-      profit NUMERIC(18,2) NOT NULL DEFAULT 0,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      type TEXT NOT NULL,
+      quantity NUMERIC(18,2) NOT NULL,
+      unit_price NUMERIC(18,2) NOT NULL,
+      total NUMERIC(18,2) NOT NULL,
+      buy_cost NUMERIC(18,2) DEFAULT 0,
+      profit NUMERIC(18,2) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
   `);
 
-  await d.query(`
-    CREATE INDEX IF NOT EXISTS products_shop_idx
-    ON products(shop_id);
+  await p.query(`
+    CREATE INDEX IF NOT EXISTS idx_users_token
+    ON users(token)
   `);
 
-  await d.query(`
-    CREATE INDEX IF NOT EXISTS transactions_shop_idx
-    ON transactions(shop_id);
+  await p.query(`
+    CREATE INDEX IF NOT EXISTS idx_products_shop
+    ON products(shop_id)
+  `);
+
+  await p.query(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_shop
+    ON transactions(shop_id)
   `);
 
   return true;
 }
 
-async function auth(req) {
-  const token =
-    req.headers.authorization?.replace(/^Bearer\s+/i, "") ||
-    req.headers["x-auth-token"];
+async function getUser(req) {
+  const token = getToken(req);
 
   if (!token) return null;
 
-  const result = await db().query(`
+  const p = await db();
+
+  const result = await p.query(`
     SELECT
       u.id,
       u.shop_id,
       u.name,
       u.username,
       u.role,
-      u.active,
       s.name AS shop_name,
-      s.phone AS shop_phone,
-      s.address AS shop_address
+      s.address AS shop_address,
+      s.phone AS shop_phone
     FROM users u
-    INNER JOIN shops s ON s.id = u.shop_id
+    JOIN shops s ON s.id = u.shop_id
     WHERE u.token = $1
-      AND u.active = TRUE
+    LIMIT 1
   `, [token]);
 
   return result.rows[0] || null;
 }
 
+function body(req) {
+  return req.body || {};
+}
+
 module.exports = async function handler(req, res) {
+
+  cors(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   try {
-    const method = req.method || "GET";
 
     const url = new URL(
       req.url,
       `https://${req.headers.host || "localhost"}`
     );
 
-    const path =
-      url.pathname.replace(/^\/api/, "") || "/";
+    const path = url.pathname.replace(/^\/api/, "") || "/";
 
-    await setup();
+    // -----------------------------
+    // API HEALTH
+    // -----------------------------
 
-    const d = db();
-
-    // -------------------------
-    // API HOME
-    // -------------------------
-    if (path === "/" && method === "GET") {
+    if (path === "/" && req.method === "GET") {
       return send(res, 200, {
         success: true,
         app: "Dokanyaar",
@@ -171,127 +170,133 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // -------------------------
+    // -----------------------------
     // SETUP
-    // -------------------------
-    if (
-      path === "/setup" &&
-      (method === "GET" || method === "POST")
-    ) {
+    // -----------------------------
+
+    if (path === "/setup" && (req.method === "GET" || req.method === "POST")) {
+
+      await setupDatabase();
+
       return send(res, 200, {
         success: true,
-        message: "دیتابیس دوکان‌یار آماده است."
+        message: "Database is ready."
       });
     }
 
-    // -------------------------
-    // REGISTER SHOP
-    // -------------------------
-    if (path === "/register" && method === "POST") {
-      const body = req.body || {};
+    await setupDatabase();
 
-      const shopName = clean(body.shop_name);
-      const ownerName = clean(body.name);
-      const username = clean(body.username).toLowerCase();
-      const password = clean(body.password);
-      const phone = clean(body.phone);
-      const address = clean(body.address);
+    // -----------------------------
+    // REGISTER
+    // -----------------------------
 
-      if (!shopName)
+    if (path === "/register" && req.method === "POST") {
+
+      const b = body(req);
+
+      const shopName = String(
+        b.shop_name || b.shopName || ""
+      ).trim();
+
+      const name = String(
+        b.name || ""
+      ).trim();
+
+      const username = String(
+        b.username || ""
+      ).trim().toLowerCase();
+
+      const password = String(
+        b.password || ""
+      );
+
+      if (!shopName || !name || !username || !password) {
         return send(res, 400, {
           success: false,
-          error: "نام دوکان را وارد کنید."
+          error: "تمام معلومات را وارد کنید."
         });
-
-      if (!ownerName)
-        return send(res, 400, {
-          success: false,
-          error: "نام صاحب دوکان را وارد کنید."
-        });
-
-      if (username.length < 3)
-        return send(res, 400, {
-          success: false,
-          error: "نام کاربری حداقل ۳ حرف باشد."
-        });
-
-      if (password.length < 4)
-        return send(res, 400, {
-          success: false,
-          error: "رمز عبور حداقل ۴ حرف باشد."
-        });
-
-      const client = await d.connect();
-
-      try {
-        await client.query("BEGIN");
-
-        const existing = await client.query(
-          `SELECT id FROM users WHERE username=$1`,
-          [username]
-        );
-
-        if (existing.rows.length) {
-          await client.query("ROLLBACK");
-
-          return send(res, 409, {
-            success: false,
-            error: "این نام کاربری قبلاً استفاده شده است."
-          });
-        }
-
-        const shop = await client.query(`
-          INSERT INTO shops
-          (name,phone,address)
-          VALUES ($1,$2,$3)
-          RETURNING id,name,phone,address
-        `, [
-          shopName,
-          phone,
-          address
-        ]);
-
-        const token = makeToken();
-
-        const user = await client.query(`
-          INSERT INTO users
-          (shop_id,name,username,password_hash,role,token)
-          VALUES ($1,$2,$3,$4,'owner',$5)
-          RETURNING id,name,username,role
-        `, [
-          shop.rows[0].id,
-          ownerName,
-          username,
-          hashPassword(password),
-          token
-        ]);
-
-        await client.query("COMMIT");
-
-        return send(res, 201, {
-          success: true,
-          message: "دوکان با موفقیت ثبت شد.",
-          token,
-          user: user.rows[0],
-          shop: shop.rows[0]
-        });
-
-      } catch (error) {
-        await client.query("ROLLBACK");
-        throw error;
-      } finally {
-        client.release();
       }
+
+      if (password.length < 4) {
+        return send(res, 400, {
+          success: false,
+          error: "رمز عبور حداقل 4 حرف باشد."
+        });
+      }
+
+      const p = await db();
+
+      const existing = await p.query(
+        `SELECT id FROM users WHERE username=$1 LIMIT 1`,
+        [username]
+      );
+
+      if (existing.rows.length) {
+        return send(res, 409, {
+          success: false,
+          error: "این نام کاربری قبلاً استفاده شده است."
+        });
+      }
+
+      const shop = await p.query(`
+        INSERT INTO shops(name)
+        VALUES($1)
+        RETURNING *
+      `, [shopName]);
+
+      const shopId = shop.rows[0].id;
+
+      const token = makeToken();
+
+      const user = await p.query(`
+        INSERT INTO users(
+          shop_id,
+          name,
+          username,
+          password_hash,
+          role,
+          token
+        )
+        VALUES($1,$2,$3,$4,'owner',$5)
+        RETURNING
+          id,
+          shop_id,
+          name,
+          username,
+          role
+      `, [
+        shopId,
+        name,
+        username,
+        hashPassword(password),
+        token
+      ]);
+
+      return send(res, 201, {
+        success: true,
+        token,
+        user: {
+          ...user.rows[0],
+          shop_name: shopName
+        }
+      });
     }
 
-    // -------------------------
+    // -----------------------------
     // LOGIN
-    // -------------------------
-    if (path === "/login" && method === "POST") {
-      const body = req.body || {};
+    // -----------------------------
 
-      const username = clean(body.username).toLowerCase();
-      const password = clean(body.password);
+    if (path === "/login" && req.method === "POST") {
+
+      const b = body(req);
+
+      const username = String(
+        b.username || ""
+      ).trim().toLowerCase();
+
+      const password = String(
+        b.password || ""
+      );
 
       if (!username || !password) {
         return send(res, 400, {
@@ -300,21 +305,21 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const result = await d.query(`
+      const p = await db();
+
+      const result = await p.query(`
         SELECT
           u.id,
           u.shop_id,
           u.name,
           u.username,
-          u.password_hash,
           u.role,
-          s.name AS shop_name,
-          s.phone AS shop_phone,
-          s.address AS shop_address
+          u.password_hash,
+          s.name AS shop_name
         FROM users u
-        INNER JOIN shops s ON s.id=u.shop_id
+        JOIN shops s ON s.id=u.shop_id
         WHERE u.username=$1
-          AND u.active=TRUE
+        LIMIT 1
       `, [username]);
 
       if (!result.rows.length) {
@@ -335,853 +340,830 @@ module.exports = async function handler(req, res) {
 
       const token = makeToken();
 
-      await d.query(
+      await p.query(
         `UPDATE users SET token=$1 WHERE id=$2`,
         [token, user.id]
       );
 
+      delete user.password_hash;
+
       return send(res, 200, {
         success: true,
         token,
-        user: {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          role: user.role
-        },
-        shop: {
-          id: user.shop_id,
-          name: user.shop_name,
-          phone: user.shop_phone,
-          address: user.shop_address
-        }
+        user
       });
     }
 
-    // -------------------------
-    // LOGOUT
-    // -------------------------
-    if (path === "/logout" && method === "POST") {
-      const user = await auth(req);
+    // -----------------------------
+    // AUTH
+    // -----------------------------
 
-      if (user) {
-        await d.query(
-          `UPDATE users SET token=NULL WHERE id=$1`,
-          [user.id]
-        );
-      }
+    const user = await getUser(req);
+
+    if (!user) {
+      return send(res, 401, {
+        success: false,
+        error: "لطفاً وارد حساب شوید."
+      });
+    }
+
+    const shopId = user.shop_id;
+
+    // -----------------------------
+    // ME
+    // -----------------------------
+
+    if (path === "/me" && req.method === "GET") {
 
       return send(res, 200, {
-        success: true
+        success: true,
+        user
       });
     }
 
-    // -------------------------
-    // ME
-    // -------------------------
-    if (path === "/me" && method === "GET") {
-      const user = await auth(req);
+    // -----------------------------
+    // LOGOUT
+    // -----------------------------
 
-      if (!user) {
-        return send(res, 401, {
+    if (path === "/logout" && req.method === "POST") {
+
+      const p = await db();
+
+      await p.query(
+        `UPDATE users SET token=NULL WHERE id=$1`,
+        [user.id]
+      );
+
+      return send(res, 200, {
+        success: true,
+        message: "خروج موفقانه انجام شد."
+      });
+    }
+
+    // -----------------------------
+    // SHOP GET
+    // -----------------------------
+
+    if (path === "/shop" && req.method === "GET") {
+
+      const p = await db();
+
+      const result = await p.query(`
+        SELECT *
+        FROM shops
+        WHERE id=$1
+        LIMIT 1
+      `, [shopId]);
+
+      return send(res, 200, {
+        success: true,
+        shop: result.rows[0] || null
+      });
+    }
+
+    // -----------------------------
+    // SHOP UPDATE
+    // -----------------------------
+
+    if (path === "/shop" && req.method === "PUT") {
+
+      if (user.role !== "owner") {
+        return send(res, 403, {
           success: false,
-          error: "ورود معتبر نیست."
+          error: "فقط مالک می‌تواند تنظیمات دوکان را تغییر دهد."
+        });
+      }
+
+      const b = body(req);
+
+      const name = String(
+        b.name || b.shop_name || ""
+      ).trim();
+
+      const address = String(
+        b.address || ""
+      ).trim();
+
+      const phone = String(
+        b.phone || ""
+      ).trim();
+
+      if (!name) {
+        return send(res, 400, {
+          success: false,
+          error: "نام دوکان ضروری است."
+        });
+      }
+
+      const p = await db();
+
+      const result = await p.query(`
+        UPDATE shops
+        SET
+          name=$1,
+          address=$2,
+          phone=$3
+        WHERE id=$4
+        RETURNING *
+      `, [
+        name,
+        address,
+        phone,
+        shopId
+      ]);
+
+      return send(res, 200, {
+        success: true,
+        shop: result.rows[0]
+      });
+    }
+
+    // -----------------------------
+    // PRODUCTS GET
+    // -----------------------------
+
+    if (path === "/products" && req.method === "GET") {
+
+      const p = await db();
+
+      const result = await p.query(`
+        SELECT
+          id,
+          name,
+          brand,
+          model,
+          buy_price,
+          sell_price,
+          quantity,
+          created_at,
+          updated_at
+        FROM products
+        WHERE shop_id=$1
+        ORDER BY id DESC
+      `, [shopId]);
+
+      return send(res, 200, {
+        success: true,
+        products: result.rows
+      });
+    }
+
+    // -----------------------------
+    // PRODUCT CREATE
+    // -----------------------------
+
+    if (path === "/products" && req.method === "POST") {
+
+      const b = body(req);
+
+      const name = String(b.name || "").trim();
+      const brand = String(b.brand || "").trim();
+      const model = String(b.model || "").trim();
+
+      const buyPrice = Number(b.buy_price || 0);
+      const sellPrice = Number(b.sell_price || 0);
+      const quantity = Number(
+        b.quantity ?? b.stock ?? 0
+      );
+
+      if (!name) {
+        return send(res, 400, {
+          success: false,
+          error: "نام جنس ضروری است."
+        });
+      }
+
+      if (
+        !Number.isFinite(buyPrice) ||
+        !Number.isFinite(sellPrice) ||
+        !Number.isFinite(quantity) ||
+        buyPrice < 0 ||
+        sellPrice < 0 ||
+        quantity < 0
+      ) {
+        return send(res, 400, {
+          success: false,
+          error: "قیمت یا تعداد نادرست است."
+        });
+      }
+
+      const p = await db();
+
+      const result = await p.query(`
+        INSERT INTO products(
+          shop_id,
+          name,
+          brand,
+          model,
+          buy_price,
+          sell_price,
+          quantity
+        )
+        VALUES($1,$2,$3,$4,$5,$6,$7)
+        RETURNING *
+      `, [
+        shopId,
+        name,
+        brand,
+        model,
+        buyPrice,
+        sellPrice,
+        quantity
+      ]);
+
+      return send(res, 201, {
+        success: true,
+        product: result.rows[0]
+      });
+    }
+
+    // -----------------------------
+    // PRODUCT UPDATE
+    // -----------------------------
+
+    if (
+      path.startsWith("/products/") &&
+      req.method === "PUT"
+    ) {
+
+      const id = Number(
+        path.split("/")[2]
+      );
+
+      if (!id) {
+        return send(res, 400, {
+          success: false,
+          error: "شناسه جنس نادرست است."
+        });
+      }
+
+      const b = body(req);
+
+      const name = String(b.name || "").trim();
+      const brand = String(b.brand || "").trim();
+      const model = String(b.model || "").trim();
+
+      const buyPrice = Number(b.buy_price || 0);
+      const sellPrice = Number(b.sell_price || 0);
+      const quantity = Number(
+        b.quantity ?? b.stock ?? 0
+      );
+
+      const p = await db();
+
+      const result = await p.query(`
+        UPDATE products
+        SET
+          name=$1,
+          brand=$2,
+          model=$3,
+          buy_price=$4,
+          sell_price=$5,
+          quantity=$6,
+          updated_at=NOW()
+        WHERE id=$7
+        AND shop_id=$8
+        RETURNING *
+      `, [
+        name,
+        brand,
+        model,
+        buyPrice,
+        sellPrice,
+        quantity,
+        id,
+        shopId
+      ]);
+
+      if (!result.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "جنس پیدا نشد."
         });
       }
 
       return send(res, 200, {
         success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          role: user.role
-        },
-        shop: {
-          id: user.shop_id,
-          name: user.shop_name,
-          phone: user.shop_phone,
-          address: user.shop_address
-        }
+        product: result.rows[0]
       });
     }
 
-    // -------------------------
-    // SHOP
-    // -------------------------
-    if (path === "/shop") {
-      const user = await auth(req);
+    // -----------------------------
+    // PRODUCT DELETE
+    // -----------------------------
 
-      if (!user) {
-        return send(res, 401, {
-          success: false,
-          error: "ابتدا وارد شوید."
-        });
-      }
-
-      if (method === "GET") {
-        const r = await d.query(
-          `SELECT id,name,phone,address FROM shops WHERE id=$1`,
-          [user.shop_id]
-        );
-
-        return send(res, 200, {
-          success: true,
-          shop: r.rows[0]
-        });
-      }
-
-      if (method === "PUT") {
-        if (user.role !== "owner") {
-          return send(res, 403, {
-            success: false,
-            error: "فقط صاحب دوکان اجازه دارد."
-          });
-        }
-
-        const body = req.body || {};
-
-        const name = clean(body.name);
-        const phone = clean(body.phone);
-        const address = clean(body.address);
-
-        if (!name) {
-          return send(res, 400, {
-            success: false,
-            error: "نام دوکان الزامی است."
-          });
-        }
-
-        const r = await d.query(`
-          UPDATE shops
-          SET name=$1,phone=$2,address=$3
-          WHERE id=$4
-          RETURNING *
-        `, [
-          name,
-          phone,
-          address,
-          user.shop_id
-        ]);
-
-        return send(res, 200, {
-          success: true,
-          shop: r.rows[0]
-        });
-      }
-    }
-
-    // -------------------------
-    // PRODUCTS
-    // -------------------------
-    if (path === "/products") {
-      const user = await auth(req);
-
-      if (!user) {
-        return send(res, 401, {
-          success: false,
-          error: "ابتدا وارد شوید."
-        });
-      }
-
-      if (method === "GET") {
-        const r = await d.query(`
-          SELECT
-            id,name,brand,model,
-            buy_price,sell_price,stock,
-            created_at,updated_at
-          FROM products
-          WHERE shop_id=$1
-          ORDER BY id DESC
-        `, [user.shop_id]);
-
-        return send(res, 200, {
-          success: true,
-          products: r.rows
-        });
-      }
-
-      if (method === "POST") {
-        const body = req.body || {};
-
-        const name = clean(body.name);
-        const brand = clean(body.brand);
-        const model = clean(body.model);
-
-        const buyPrice = num(body.buy_price);
-        const sellPrice = num(body.sell_price);
-        const stock = num(body.stock ?? 0);
-
-        if (!name)
-          return send(res, 400, {
-            success: false,
-            error: "نام کالا الزامی است."
-          });
-
-        if (
-          buyPrice === null ||
-          buyPrice < 0
-        )
-          return send(res, 400, {
-            success: false,
-            error: "قیمت خرید نامعتبر است."
-          });
-
-        if (
-          sellPrice === null ||
-          sellPrice < 0
-        )
-          return send(res, 400, {
-            success: false,
-            error: "قیمت فروش نامعتبر است."
-          });
-
-        if (
-          stock === null ||
-          !Number.isInteger(stock) ||
-          stock < 0
-        )
-          return send(res, 400, {
-            success: false,
-            error: "موجودی نامعتبر است."
-          });
-
-        const r = await d.query(`
-          INSERT INTO products
-          (shop_id,name,brand,model,buy_price,sell_price,stock)
-          VALUES ($1,$2,$3,$4,$5,$6,$7)
-          RETURNING *
-        `, [
-          user.shop_id,
-          name,
-          brand,
-          model,
-          buyPrice,
-          sellPrice,
-          stock
-        ]);
-
-        return send(res, 201, {
-          success: true,
-          product: r.rows[0]
-        });
-      }
-
-      const match = path.match(/^\/products\/(\d+)$/);
-
-      if (match) {
-        const id = Number(match[1]);
-
-        if (method === "PUT") {
-          const body = req.body || {};
-
-          const name = clean(body.name);
-          const brand = clean(body.brand);
-          const model = clean(body.model);
-          const buyPrice = num(body.buy_price);
-          const sellPrice = num(body.sell_price);
-          const stock = num(body.stock);
-
-          if (!name)
-            return send(res,400,{
-              success:false,
-              error:"نام کالا الزامی است."
-            });
-
-          const r = await d.query(`
-            UPDATE products
-            SET
-              name=$1,
-              brand=$2,
-              model=$3,
-              buy_price=$4,
-              sell_price=$5,
-              stock=$6,
-              updated_at=NOW()
-            WHERE id=$7
-              AND shop_id=$8
-            RETURNING *
-          `, [
-            name,
-            brand,
-            model,
-            buyPrice ?? 0,
-            sellPrice ?? 0,
-            Number.isInteger(stock) ? stock : 0,
-            id,
-            user.shop_id
-          ]);
-
-          if (!r.rows.length)
-            return send(res,404,{
-              success:false,
-              error:"کالا پیدا نشد."
-            });
-
-          return send(res,200,{
-            success:true,
-            product:r.rows[0]
-          });
-        }
-
-        if (method === "DELETE") {
-          const used = await d.query(`
-            SELECT id
-            FROM transactions
-            WHERE product_id=$1
-            LIMIT 1
-          `,[id]);
-
-          if (used.rows.length) {
-            return send(res,400,{
-              success:false,
-              error:"این کالا سابقه معامله دارد و قابل حذف نیست."
-            });
-          }
-
-          const r = await d.query(`
-            DELETE FROM products
-            WHERE id=$1 AND shop_id=$2
-            RETURNING id
-          `,[id,user.shop_id]);
-
-          if (!r.rows.length)
-            return send(res,404,{
-              success:false,
-              error:"کالا پیدا نشد."
-            });
-
-          return send(res,200,{
-            success:true
-          });
-        }
-      }
-    }
-
-    // -------------------------
-    // BUY
-    // -------------------------
-    if (path === "/buy" && method === "POST") {
-      const user = await auth(req);
-
-      if (!user) {
-        return send(res,401,{
-          success:false,
-          error:"ابتدا وارد شوید."
-        });
-      }
-
-      const body = req.body || {};
-
-      const productId = num(body.product_id);
-      const quantity = num(body.quantity);
-      const unitPrice = num(body.unit_price);
-
-      if (
-        !Number.isInteger(productId) ||
-        !Number.isInteger(quantity) ||
-        quantity <= 0 ||
-        unitPrice === null ||
-        unitPrice < 0
-      ) {
-        return send(res,400,{
-          success:false,
-          error:"اطلاعات خرید نامعتبر است."
-        });
-      }
-
-      const client = await d.connect();
-
-      try {
-        await client.query("BEGIN");
-
-        const p = await client.query(`
-          SELECT *
-          FROM products
-          WHERE id=$1 AND shop_id=$2
-          FOR UPDATE
-        `,[
-          productId,
-          user.shop_id
-        ]);
-
-        if (!p.rows.length) {
-          await client.query("ROLLBACK");
-
-          return send(res,404,{
-            success:false,
-            error:"کالا پیدا نشد."
-          });
-        }
-
-        const product = p.rows[0];
-
-        const oldStock = Number(product.stock || 0);
-        const oldBuy = Number(product.buy_price || 0);
-
-        const newStock = oldStock + quantity;
-
-        // میانگین وزنی قیمت خرید
-        const averageBuy =
-          newStock === 0
-            ? unitPrice
-            : (
-                (oldStock * oldBuy) +
-                (quantity * unitPrice)
-              ) / newStock;
-
-        const total = quantity * unitPrice;
-
-        await client.query(`
-          UPDATE products
-          SET
-            stock=$1,
-            buy_price=$2,
-            updated_at=NOW()
-          WHERE id=$3
-        `,[
-          newStock,
-          averageBuy,
-          productId
-        ]);
-
-        await client.query(`
-          INSERT INTO transactions
-          (
-            shop_id,
-            product_id,
-            user_id,
-            type,
-            quantity,
-            unit_price,
-            buy_price,
-            total,
-            profit
-          )
-          VALUES
-          ($1,$2,$3,'buy',$4,$5,$6,$7,0)
-        `,[
-          user.shop_id,
-          productId,
-          user.id,
-          quantity,
-          unitPrice,
-          unitPrice,
-          total
-        ]);
-
-        await client.query("COMMIT");
-
-        return send(res,200,{
-          success:true,
-          message:"خرید ثبت شد.",
-          total,
-          average_buy_price:averageBuy
-        });
-
-      } catch(error) {
-        await client.query("ROLLBACK");
-        throw error;
-      } finally {
-        client.release();
-      }
-    }
-
-    // -------------------------
-    // SELL
-    // -------------------------
-    if (path === "/sell" && method === "POST") {
-      const user = await auth(req);
-
-      if (!user) {
-        return send(res,401,{
-          success:false,
-          error:"ابتدا وارد شوید."
-        });
-      }
-
-      const body = req.body || {};
-
-      const productId = num(body.product_id);
-      const quantity = num(body.quantity);
-      const unitPrice = num(body.unit_price);
-
-      if (
-        !Number.isInteger(productId) ||
-        !Number.isInteger(quantity) ||
-        quantity <= 0 ||
-        unitPrice === null ||
-        unitPrice < 0
-      ) {
-        return send(res,400,{
-          success:false,
-          error:"اطلاعات فروش نامعتبر است."
-        });
-      }
-
-      const client = await d.connect();
-
-      try {
-        await client.query("BEGIN");
-
-        const p = await client.query(`
-          SELECT *
-          FROM products
-          WHERE id=$1 AND shop_id=$2
-          FOR UPDATE
-        `,[
-          productId,
-          user.shop_id
-        ]);
-
-        if (!p.rows.length) {
-          await client.query("ROLLBACK");
-
-          return send(res,404,{
-            success:false,
-            error:"کالا پیدا نشد."
-          });
-        }
-
-        const product = p.rows[0];
-
-        const stock = Number(product.stock || 0);
-
-        if (stock < quantity) {
-          await client.query("ROLLBACK");
-
-          return send(res,400,{
-            success:false,
-            error:
-              `موجودی کافی نیست. موجودی فعلی: ${stock}`
-          });
-        }
-
-        const buyPrice =
-          Number(product.buy_price || 0);
-
-        const total =
-          quantity * unitPrice;
-
-        const profit =
-          (unitPrice - buyPrice) * quantity;
-
-        await client.query(`
-          UPDATE products
-          SET
-            stock=stock-$1,
-            updated_at=NOW()
-          WHERE id=$2
-        `,[
-          quantity,
-          productId
-        ]);
-
-        await client.query(`
-          INSERT INTO transactions
-          (
-            shop_id,
-            product_id,
-            user_id,
-            type,
-            quantity,
-            unit_price,
-            buy_price,
-            total,
-            profit
-          )
-          VALUES
-          ($1,$2,$3,'sell',$4,$5,$6,$7,$8)
-        `,[
-          user.shop_id,
-          productId,
-          user.id,
-          quantity,
-          unitPrice,
-          buyPrice,
-          total,
-          profit
-        ]);
-
-        await client.query("COMMIT");
-
-        return send(res,200,{
-          success:true,
-          message:"فروش ثبت شد.",
-          total,
-          profit
-        });
-
-      } catch(error) {
-        await client.query("ROLLBACK");
-        throw error;
-      } finally {
-        client.release();
-      }
-    }
-
-    // -------------------------
-    // TRANSACTIONS
-    // -------------------------
     if (
-      path === "/transactions" &&
-      method === "GET"
+      path.startsWith("/products/") &&
+      req.method === "DELETE"
     ) {
-      const user = await auth(req);
 
-      if (!user) {
-        return send(res,401,{
-          success:false,
-          error:"ابتدا وارد شوید."
+      const id = Number(
+        path.split("/")[2]
+      );
+
+      const p = await db();
+
+      const result = await p.query(`
+        DELETE FROM products
+        WHERE id=$1
+        AND shop_id=$2
+        RETURNING id
+      `, [
+        id,
+        shopId
+      ]);
+
+      if (!result.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "جنس پیدا نشد."
         });
       }
 
-      const r = await d.query(`
+      return send(res, 200, {
+        success: true,
+        message: "جنس حذف شد."
+      });
+    }
+
+    // -----------------------------
+    // BUY
+    // -----------------------------
+
+    if (path === "/buy" && req.method === "POST") {
+
+      const b = body(req);
+
+      const productId = Number(b.product_id);
+      const quantity = Number(b.quantity);
+      const unitPrice = Number(b.unit_price);
+
+      if (
+        !productId ||
+        quantity <= 0 ||
+        unitPrice < 0
+      ) {
+        return send(res, 400, {
+          success: false,
+          error: "معلومات خرید نادرست است."
+        });
+      }
+
+      const p = await db();
+
+      const productResult = await p.query(`
+        SELECT *
+        FROM products
+        WHERE id=$1
+        AND shop_id=$2
+        FOR UPDATE
+      `, [
+        productId,
+        shopId
+      ]);
+
+      if (!productResult.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "جنس پیدا نشد."
+        });
+      }
+
+      const product = productResult.rows[0];
+
+      const oldStock = Number(product.quantity || 0);
+      const oldBuy = Number(product.buy_price || 0);
+
+      // میانگین وزنی قیمت خرید
+      const newAverage =
+        (
+          oldStock * oldBuy +
+          quantity * unitPrice
+        ) /
+        (oldStock + quantity);
+
+      const newStock =
+        oldStock + quantity;
+
+      await p.query(`
+        UPDATE products
+        SET
+          quantity=$1,
+          buy_price=$2,
+          updated_at=NOW()
+        WHERE id=$3
+        AND shop_id=$4
+      `, [
+        newStock,
+        newAverage,
+        productId,
+        shopId
+      ]);
+
+      const total =
+        quantity * unitPrice;
+
+      await p.query(`
+        INSERT INTO transactions(
+          shop_id,
+          product_id,
+          type,
+          quantity,
+          unit_price,
+          total,
+          buy_cost,
+          profit
+        )
+        VALUES(
+          $1,$2,'buy',$3,$4,$5,$6,0
+        )
+      `, [
+        shopId,
+        productId,
+        quantity,
+        unitPrice,
+        total,
+        total
+      ]);
+
+      return send(res, 200, {
+        success: true,
+        message: "خرید ثبت شد.",
+        stock: newStock,
+        average_buy_price: newAverage
+      });
+    }
+
+    // -----------------------------
+    // SELL
+    // -----------------------------
+
+    if (path === "/sell" && req.method === "POST") {
+
+      const b = body(req);
+
+      const productId = Number(b.product_id);
+      const quantity = Number(b.quantity);
+      const unitPrice = Number(b.unit_price);
+
+      if (
+        !productId ||
+        quantity <= 0 ||
+        unitPrice < 0
+      ) {
+        return send(res, 400, {
+          success: false,
+          error: "معلومات فروش نادرست است."
+        });
+      }
+
+      const p = await db();
+
+      const productResult = await p.query(`
+        SELECT *
+        FROM products
+        WHERE id=$1
+        AND shop_id=$2
+        FOR UPDATE
+      `, [
+        productId,
+        shopId
+      ]);
+
+      if (!productResult.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "جنس پیدا نشد."
+        });
+      }
+
+      const product = productResult.rows[0];
+
+      const stock =
+        Number(product.quantity || 0);
+
+      const averageBuy =
+        Number(product.buy_price || 0);
+
+      if (quantity > stock) {
+        return send(res, 400, {
+          success: false,
+          error:
+            `موجودی کافی نیست. موجودی فعلی: ${stock}`
+        });
+      }
+
+      const newStock =
+        stock - quantity;
+
+      const total =
+        quantity * unitPrice;
+
+      const cost =
+        quantity * averageBuy;
+
+      const profit =
+        total - cost;
+
+      await p.query(`
+        UPDATE products
+        SET
+          quantity=$1,
+          updated_at=NOW()
+        WHERE id=$2
+        AND shop_id=$3
+      `, [
+        newStock,
+        productId,
+        shopId
+      ]);
+
+      await p.query(`
+        INSERT INTO transactions(
+          shop_id,
+          product_id,
+          type,
+          quantity,
+          unit_price,
+          total,
+          buy_cost,
+          profit
+        )
+        VALUES(
+          $1,$2,'sell',$3,$4,$5,$6,$7
+        )
+      `, [
+        shopId,
+        productId,
+        quantity,
+        unitPrice,
+        total,
+        cost,
+        profit
+      ]);
+
+      return send(res, 200, {
+        success: true,
+        message: "فروش ثبت شد.",
+        stock: newStock,
+        profit
+      });
+    }
+
+    // -----------------------------
+    // TRANSACTIONS
+    // -----------------------------
+
+    if (path === "/transactions" && req.method === "GET") {
+
+      const p = await db();
+
+      const result = await p.query(`
         SELECT
-          t.id,
-          t.type,
-          t.quantity,
-          t.unit_price,
-          t.buy_price,
-          t.total,
-          t.profit,
-          t.created_at,
+          t.*,
           p.name AS product_name,
-          u.name AS username
+          p.brand,
+          p.model
         FROM transactions t
-        INNER JOIN products p
+        LEFT JOIN products p
           ON p.id=t.product_id
-        LEFT JOIN users u
-          ON u.id=t.user_id
         WHERE t.shop_id=$1
         ORDER BY t.id DESC
         LIMIT 500
-      `,[
-        user.shop_id
-      ]);
+      `, [shopId]);
 
-      return send(res,200,{
-        success:true,
-        transactions:r.rows
+      return send(res, 200, {
+        success: true,
+        transactions: result.rows
       });
     }
 
-    // -------------------------
-    // WORKERS
-    // -------------------------
-    if (path === "/workers") {
-      const user = await auth(req);
+    // -----------------------------
+    // WORKERS GET
+    // -----------------------------
 
-      if (!user) {
-        return send(res,401,{
-          success:false,
-          error:"ابتدا وارد شوید."
-        });
-      }
+    if (path === "/workers" && req.method === "GET") {
 
       if (user.role !== "owner") {
-        return send(res,403,{
-          success:false,
-          error:"فقط صاحب دوکان اجازه دارد."
+        return send(res, 403, {
+          success: false,
+          error: "فقط مالک دسترسی دارد."
         });
       }
 
-      if (method === "GET") {
-        const r = await d.query(`
-          SELECT
-            id,name,username,active,created_at
-          FROM users
-          WHERE shop_id=$1
-            AND role='worker'
-          ORDER BY id DESC
-        `,[
-          user.shop_id
-        ]);
+      const p = await db();
 
-        return send(res,200,{
-          success:true,
-          workers:r.rows
-        });
-      }
-
-      if (method === "POST") {
-        const body = req.body || {};
-
-        const name = clean(body.name);
-        const username =
-          clean(body.username).toLowerCase();
-        const password = clean(body.password);
-
-        if (!name || username.length < 3) {
-          return send(res,400,{
-            success:false,
-            error:"نام و نام کاربری معتبر وارد کنید."
-          });
-        }
-
-        if (password.length < 4) {
-          return send(res,400,{
-            success:false,
-            error:"رمز کارمند حداقل ۴ حرف باشد."
-          });
-        }
-
-        const exists = await d.query(`
-          SELECT id FROM users
-          WHERE username=$1
-        `,[username]);
-
-        if (exists.rows.length) {
-          return send(res,409,{
-            success:false,
-            error:"این نام کاربری قبلاً استفاده شده است."
-          });
-        }
-
-        const r = await d.query(`
-          INSERT INTO users
-          (
-            shop_id,
-            name,
-            username,
-            password_hash,
-            role
-          )
-          VALUES
-          ($1,$2,$3,$4,'worker')
-          RETURNING id,name,username,role,active
-        `,[
-          user.shop_id,
+      const result = await p.query(`
+        SELECT
+          id,
           name,
           username,
-          hashPassword(password)
-        ]);
+          role,
+          created_at
+        FROM users
+        WHERE shop_id=$1
+        ORDER BY id DESC
+      `, [shopId]);
 
-        return send(res,201,{
-          success:true,
-          worker:r.rows[0]
-        });
-      }
-    }
-
-    const workerMatch =
-      path.match(/^\/workers\/(\d+)$/);
-
-    if (
-      workerMatch &&
-      method === "DELETE"
-    ) {
-      const user = await auth(req);
-
-      if (!user || user.role !== "owner") {
-        return send(res,403,{
-          success:false,
-          error:"اجازه ندارید."
-        });
-      }
-
-      const id = Number(workerMatch[1]);
-
-      await d.query(`
-        DELETE FROM users
-        WHERE id=$1
-          AND shop_id=$2
-          AND role='worker'
-      `,[
-        id,
-        user.shop_id
-      ]);
-
-      return send(res,200,{
-        success:true
+      return send(res, 200, {
+        success: true,
+        workers: result.rows
       });
     }
 
-    // -------------------------
-    // DASHBOARD
-    // -------------------------
-    if (
-      path === "/dashboard" &&
-      method === "GET"
-    ) {
-      const user = await auth(req);
+    // -----------------------------
+    // WORKER CREATE
+    // -----------------------------
 
-      if (!user) {
-        return send(res,401,{
-          success:false,
-          error:"ابتدا وارد شوید."
+    if (path === "/workers" && req.method === "POST") {
+
+      if (user.role !== "owner") {
+        return send(res, 403, {
+          success: false,
+          error: "فقط مالک می‌تواند کارمند اضافه کند."
         });
       }
 
-      const products = await d.query(`
+      const b = body(req);
+
+      const name =
+        String(b.name || "").trim();
+
+      const username =
+        String(b.username || "")
+          .trim()
+          .toLowerCase();
+
+      const password =
+        String(b.password || "");
+
+      if (!name || !username || !password) {
+        return send(res, 400, {
+          success: false,
+          error: "تمام معلومات کارمند را وارد کنید."
+        });
+      }
+
+      const p = await db();
+
+      const existing = await p.query(
+        `SELECT id FROM users WHERE username=$1`,
+        [username]
+      );
+
+      if (existing.rows.length) {
+        return send(res, 409, {
+          success: false,
+          error: "این نام کاربری قبلاً وجود دارد."
+        });
+      }
+
+      const result = await p.query(`
+        INSERT INTO users(
+          shop_id,
+          name,
+          username,
+          password_hash,
+          role
+        )
+        VALUES($1,$2,$3,$4,'worker')
+        RETURNING
+          id,
+          name,
+          username,
+          role
+      `, [
+        shopId,
+        name,
+        username,
+        hashPassword(password)
+      ]);
+
+      return send(res, 201, {
+        success: true,
+        worker: result.rows[0]
+      });
+    }
+
+    // -----------------------------
+    // WORKER DELETE
+    // -----------------------------
+
+    if (
+      path.startsWith("/workers/") &&
+      req.method === "DELETE"
+    ) {
+
+      if (user.role !== "owner") {
+        return send(res, 403, {
+          success: false,
+          error: "فقط مالک می‌تواند کارمند حذف کند."
+        });
+      }
+
+      const id =
+        Number(path.split("/")[2]);
+
+      if (id === user.id) {
+        return send(res, 400, {
+          success: false,
+          error: "نمی‌توانید حساب خودتان را حذف کنید."
+        });
+      }
+
+      const p = await db();
+
+      const result = await p.query(`
+        DELETE FROM users
+        WHERE id=$1
+        AND shop_id=$2
+        AND role='worker'
+        RETURNING id
+      `, [
+        id,
+        shopId
+      ]);
+
+      if (!result.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "کارمند پیدا نشد."
+        });
+      }
+
+      return send(res, 200, {
+        success: true,
+        message: "کارمند حذف شد."
+      });
+    }
+
+    // -----------------------------
+    // DASHBOARD
+    // -----------------------------
+
+    if (path === "/dashboard" && req.method === "GET") {
+
+      const p = await db();
+
+      const productsResult = await p.query(`
         SELECT
-          COUNT(*)::int AS count,
-          COALESCE(SUM(stock),0)::int AS stock
+          COUNT(*)::int AS products_count,
+          COALESCE(SUM(quantity),0) AS total_stock
         FROM products
         WHERE shop_id=$1
-      `,[
-        user.shop_id
-      ]);
+      `, [shopId]);
 
-      const sales = await d.query(`
+      const salesResult = await p.query(`
         SELECT
-          COALESCE(SUM(total),0) AS total,
-          COALESCE(SUM(profit),0) AS profit,
-          COUNT(*)::int AS count
+          COALESCE(SUM(total),0) AS total_sales,
+          COALESCE(SUM(profit),0) AS total_profit
         FROM transactions
         WHERE shop_id=$1
-          AND type='sell'
-      `,[
-        user.shop_id
-      ]);
+        AND type='sell'
+      `, [shopId]);
 
-      const purchases = await d.query(`
+      const purchasesResult = await p.query(`
         SELECT
-          COALESCE(SUM(total),0) AS total,
-          COUNT(*)::int AS count
+          COALESCE(SUM(total),0) AS total_purchases
         FROM transactions
         WHERE shop_id=$1
-          AND type='buy'
-      `,[
-        user.shop_id
-      ]);
+        AND type='buy'
+      `, [shopId]);
 
-      const low = await d.query(`
-        SELECT COUNT(*)::int AS count
-        FROM products
-        WHERE shop_id=$1
-          AND stock <= 3
-      `,[
-        user.shop_id
-      ]);
+      const a = productsResult.rows[0];
+      const s = salesResult.rows[0];
+      const b = purchasesResult.rows[0];
 
-      return send(res,200,{
-        success:true,
-        dashboard:{
-          products:Number(products.rows[0].count),
-          stock:Number(products.rows[0].stock),
-          sales:Number(sales.rows[0].total),
-          profit:Number(sales.rows[0].profit),
-          sale_count:Number(sales.rows[0].count),
-          purchases:Number(purchases.rows[0].total),
-          purchase_count:Number(purchases.rows[0].count),
-          low_stock:Number(low.rows[0].count)
+      return send(res, 200, {
+        success: true,
+        dashboard: {
+          products_count: Number(a.products_count || 0),
+          total_stock: Number(a.total_stock || 0),
+          total_sales: Number(s.total_sales || 0),
+          total_profit: Number(s.total_profit || 0),
+          total_purchases: Number(b.total_purchases || 0)
         }
       });
     }
 
-    return send(res,404,{
-      success:false,
-      error:"Endpoint not found."
+    // -----------------------------
+    // UNKNOWN
+    // -----------------------------
+
+    return send(res, 404, {
+      success: false,
+      error: "Endpoint not found",
+      path
     });
 
-  } catch(error) {
-    console.error("DOKANYAAR API ERROR:",error);
+  } catch (error) {
 
-    return send(res,500,{
-      success:false,
-      error:error.message ||
-        "خطای داخلی سرور"
+    console.error("API ERROR:", error);
+
+    return send(res, 500, {
+      success: false,
+      error: error.message || "خطای سرور"
     });
+
   }
 };
