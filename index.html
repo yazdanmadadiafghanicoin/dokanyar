@@ -2,637 +2,1120 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#0f172a">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111827">
 <title>دوکان‌یار</title>
 
 <style>
 *{box-sizing:border-box}
+
 body{
- margin:0;
- font-family:Tahoma,Arial,sans-serif;
- background:#f1f5f9;
- color:#0f172a;
+  margin:0;
+  font-family:Tahoma,Arial,sans-serif;
+  background:#f3f4f6;
+  color:#111827;
 }
+
 button,input,select{
- font-family:inherit;
+  font-family:inherit;
 }
+
 button{
- border:0;
- border-radius:10px;
- padding:12px 15px;
- cursor:pointer;
- font-weight:bold;
+  cursor:pointer;
 }
-input,select{
- width:100%;
- padding:12px;
- border:1px solid #cbd5e1;
- border-radius:10px;
- background:white;
- margin:6px 0 12px;
+
+.hidden{
+  display:none!important;
 }
-.top{
- background:#0f172a;
- color:white;
- padding:16px;
- position:sticky;
- top:0;
- z-index:10;
+
+/* LOGIN */
+
+#authPage{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(135deg,#111827,#1f2937);
 }
-.top h2{margin:0 0 10px}
-.status{
- font-size:12px;
- opacity:.9;
+
+.authBox{
+  width:100%;
+  max-width:430px;
+  background:white;
+  border-radius:22px;
+  padding:25px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
 }
-.container{
- max-width:1100px;
- margin:auto;
- padding:15px;
+
+.logo{
+  text-align:center;
+  margin-bottom:20px;
 }
-.card{
- background:white;
- border-radius:15px;
- padding:16px;
- margin-bottom:15px;
- box-shadow:0 2px 8px #0000000d;
+
+.logoIcon{
+  width:70px;
+  height:70px;
+  border-radius:20px;
+  background:#111827;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:auto;
+  font-size:34px;
+  font-weight:bold;
 }
-.auth{
- max-width:450px;
- margin:35px auto;
+
+.logo h1{
+  margin:12px 0 5px;
 }
+
+.logo p{
+  margin:0;
+  color:#6b7280;
+}
+
 .tabs{
- display:flex;
- gap:8px;
- margin-bottom:15px;
+  display:flex;
+  gap:8px;
+  margin:20px 0;
 }
+
 .tabs button{
- flex:1;
- background:#e2e8f0;
+  flex:1;
+  border:0;
+  padding:12px;
+  border-radius:12px;
+  background:#e5e7eb;
 }
+
 .tabs button.active{
- background:#2563eb;
- color:white;
+  background:#111827;
+  color:white;
 }
-.hidden{display:none!important}
-.grid{
- display:grid;
- grid-template-columns:repeat(4,1fr);
- gap:12px;
+
+.formGroup{
+  margin-bottom:14px;
 }
-.stat{
- background:white;
- border-radius:15px;
- padding:15px;
- box-shadow:0 2px 8px #0000000d;
+
+.formGroup label{
+  display:block;
+  margin-bottom:6px;
+  font-size:14px;
+  font-weight:bold;
 }
-.stat small{color:#64748b}
-.stat strong{
- display:block;
- font-size:22px;
- margin-top:8px;
+
+.formGroup input,
+.formGroup select{
+  width:100%;
+  padding:13px;
+  border:1px solid #d1d5db;
+  border-radius:12px;
+  outline:none;
+  background:white;
 }
-.nav{
- display:grid;
- grid-template-columns:repeat(7,1fr);
- gap:6px;
- margin-bottom:15px;
+
+.formGroup input:focus,
+.formGroup select:focus{
+  border-color:#111827;
 }
-.nav button{
- background:white;
- color:#334155;
+
+.mainBtn{
+  width:100%;
+  border:0;
+  padding:14px;
+  border-radius:12px;
+  background:#111827;
+  color:white;
+  font-size:16px;
+  font-weight:bold;
 }
-.nav button.active{
- background:#2563eb;
- color:white;
-}
-.row{
- display:grid;
- grid-template-columns:1fr 1fr;
- gap:10px;
-}
-.btn-blue{background:#2563eb;color:white}
-.btn-green{background:#16a34a;color:white}
-.btn-red{background:#dc2626;color:white}
-.btn-gray{background:#64748b;color:white}
-.btn-orange{background:#ea580c;color:white}
-table{
- width:100%;
- border-collapse:collapse;
- min-width:700px;
-}
-th,td{
- padding:10px;
- border-bottom:1px solid #e2e8f0;
- text-align:right;
-}
-.table-wrap{
- overflow:auto;
-}
-.badge{
- display:inline-block;
- padding:5px 9px;
- border-radius:20px;
- font-size:12px;
- background:#e2e8f0;
-}
-.low{
- background:#fee2e2;
- color:#b91c1c;
-}
-.good{
- background:#dcfce7;
- color:#166534;
-}
-.warning{
- background:#fef3c7;
- color:#92400e;
-}
+
 .message{
- padding:10px;
- border-radius:10px;
- margin:10px 0;
- display:none;
+  margin-top:12px;
+  padding:10px;
+  border-radius:10px;
+  display:none;
+  text-align:center;
+  font-size:14px;
 }
-.success{
- display:block;
- background:#dcfce7;
- color:#166534;
+
+/* APP */
+
+#appPage{
+  min-height:100vh;
 }
-.error{
- display:block;
- background:#fee2e2;
- color:#991b1b;
+
+.topbar{
+  height:64px;
+  background:#111827;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 18px;
+  position:sticky;
+  top:0;
+  z-index:50;
 }
-.money-box{
- background:#eff6ff;
- padding:12px;
- border-radius:10px;
- margin-top:8px;
+
+.topTitle{
+  font-size:20px;
+  font-weight:bold;
 }
-@media(max-width:800px){
- .grid{grid-template-columns:1fr 1fr}
- .nav{grid-template-columns:repeat(4,1fr)}
+
+.topActions{
+  display:flex;
+  gap:8px;
 }
-@media(max-width:500px){
- .grid{grid-template-columns:1fr}
- .row{grid-template-columns:1fr}
- .nav{grid-template-columns:repeat(3,1fr)}
- .nav button{font-size:12px;padding:9px 5px}
+
+.iconBtn{
+  border:0;
+  background:#374151;
+  color:white;
+  padding:9px 12px;
+  border-radius:10px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 64px);
+}
+
+.sidebar{
+  width:230px;
+  background:#1f2937;
+  color:white;
+  padding:15px;
+}
+
+.navBtn{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#d1d5db;
+  text-align:right;
+  padding:13px;
+  border-radius:10px;
+  margin-bottom:5px;
+  font-size:15px;
+}
+
+.navBtn:hover,
+.navBtn.active{
+  background:#374151;
+  color:white;
+}
+
+.content{
+  flex:1;
+  padding:20px;
+  max-width:1400px;
+  margin:auto;
+  width:100%;
+}
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.pageTitle{
+  margin:0 0 18px;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+
+.card{
+  background:white;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.06);
+}
+
+.cardTitle{
+  color:#6b7280;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.cardValue{
+  font-size:22px;
+  font-weight:bold;
+}
+
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+
+.panel{
+  background:white;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.06);
+  margin-bottom:18px;
+}
+
+.panel h3{
+  margin-top:0;
+}
+
+.tableWrap{
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:650px;
+}
+
+th,td{
+  padding:12px 10px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:right;
+  font-size:14px;
+}
+
+th{
+  background:#f9fafb;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:8px;
+  background:#e5e7eb;
+  font-size:12px;
+}
+
+.badge.green{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.badge.red{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.badge.blue{
+  background:#dbeafe;
+  color:#1e40af;
+}
+
+.actionBtn{
+  border:0;
+  padding:8px 11px;
+  border-radius:9px;
+  margin:2px;
+}
+
+.btnDark{
+  background:#111827;
+  color:white;
+}
+
+.btnGreen{
+  background:#16a34a;
+  color:white;
+}
+
+.btnRed{
+  background:#dc2626;
+  color:white;
+}
+
+.btnBlue{
+  background:#2563eb;
+  color:white;
+}
+
+.formGrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.formGrid3{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+}
+
+.full{
+  grid-column:1/-1;
+}
+
+.notice{
+  padding:12px;
+  border-radius:10px;
+  background:#f3f4f6;
+  margin-bottom:15px;
+}
+
+.serverStatus{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  background:#374151;
+  padding:6px 9px;
+  border-radius:8px;
+}
+
+.dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#ef4444;
+}
+
+.dot.ok{
+  background:#22c55e;
+}
+
+.empty{
+  text-align:center;
+  padding:30px;
+  color:#6b7280;
+}
+
+/* RECEIPT */
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+  z-index:100;
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modalBox{
+  width:100%;
+  max-width:500px;
+  max-height:90vh;
+  overflow:auto;
+  background:white;
+  border-radius:18px;
+  padding:20px;
+}
+
+.receipt{
+  background:white;
+  padding:10px;
+}
+
+.receiptHead{
+  text-align:center;
+  border-bottom:1px dashed #999;
+  padding-bottom:12px;
+  margin-bottom:12px;
+}
+
+.receiptRow{
+  display:flex;
+  justify-content:space-between;
+  padding:7px 0;
+  border-bottom:1px solid #eee;
+}
+
+.receiptTotal{
+  font-size:22px;
+  font-weight:bold;
+  text-align:center;
+  padding:15px 0;
+}
+
+.modalActions{
+  display:flex;
+  gap:8px;
+  margin-top:15px;
+}
+
+.modalActions button{
+  flex:1;
+  padding:12px;
+  border:0;
+  border-radius:10px;
+}
+
+/* MOBILE */
+
+.mobileNav{
+  display:none;
+}
+
+@media(max-width:900px){
+  .cards{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .sidebar{
+    width:200px;
+  }
+
+  .grid2{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:650px){
+  .topbar{
+    padding:0 10px;
+  }
+
+  .topTitle{
+    font-size:17px;
+  }
+
+  .sidebar{
+    display:none;
+  }
+
+  .content{
+    padding:12px;
+    padding-bottom:85px;
+  }
+
+  .cards{
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+  }
+
+  .card{
+    padding:13px;
+  }
+
+  .cardValue{
+    font-size:18px;
+  }
+
+  .formGrid,
+  .formGrid3{
+    grid-template-columns:1fr;
+  }
+
+  .mobileNav{
+    display:flex;
+    position:fixed;
+    bottom:0;
+    right:0;
+    left:0;
+    background:#111827;
+    z-index:80;
+    padding:6px;
+    gap:3px;
+  }
+
+  .mobileNav button{
+    flex:1;
+    border:0;
+    background:transparent;
+    color:#d1d5db;
+    padding:9px 2px;
+    font-size:11px;
+  }
+
+  .mobileNav button.active{
+    color:white;
+    background:#374151;
+    border-radius:8px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div id="loginPage">
- <div class="container">
-  <div class="auth card">
-   <h1>📱 دوکان‌یار</h1>
-   <p>سیستم مدیریت دوکان پرزه‌جات موبایل</p>
+<!-- LOGIN -->
 
-   <div class="tabs">
-    <button id="loginTab" class="active" onclick="showLogin()">ورود</button>
-    <button id="registerTab" onclick="showRegister()">ثبت دوکان</button>
-   </div>
+<div id="authPage">
 
-   <div id="msg" class="message"></div>
+  <div class="authBox">
 
-   <div id="loginBox">
-    <label>نام کاربری</label>
-    <input id="loginUsername" placeholder="نام کاربری">
+    <div class="logo">
+      <div class="logoIcon">د</div>
+      <h1>دوکان‌یار</h1>
+      <p>مدیریت هوشمند دوکان پرزه‌جات موبایل</p>
+    </div>
 
-    <label>رمز عبور</label>
-    <input id="loginPassword" type="password" placeholder="رمز عبور">
+    <div class="tabs">
+      <button id="loginTab" class="active" onclick="showAuth('login')">ورود</button>
+      <button id="registerTab" onclick="showAuth('register')">ثبت دوکان</button>
+    </div>
 
-    <button class="btn-blue" style="width:100%" onclick="login()">
-     🔐 ورود
-    </button>
-   </div>
+    <div id="loginForm">
 
-   <div id="registerBox" class="hidden">
-    <label>نام دوکان</label>
-    <input id="shopName" placeholder="مثلاً موبایل احمد">
+      <div class="formGroup">
+        <label>نام کاربری</label>
+        <input id="loginUsername" type="text" placeholder="نام کاربری">
+      </div>
 
-    <label>نام کاربری صاحب دوکان</label>
-    <input id="regUsername" placeholder="نام کاربری">
+      <div class="formGroup">
+        <label>رمز عبور</label>
+        <input id="loginPassword" type="password" placeholder="رمز عبور">
+      </div>
 
-    <label>رمز عبور</label>
-    <input id="regPassword" type="password" placeholder="حداقل 4 حرف">
+      <button class="mainBtn" onclick="login()">ورود به دوکان</button>
 
-    <button class="btn-green" style="width:100%" onclick="registerShop()">
-     🏪 ثبت دوکان
-    </button>
-   </div>
+    </div>
+
+    <div id="registerForm" class="hidden">
+
+      <div class="formGroup">
+        <label>نام دوکان</label>
+        <input id="regShop" type="text" placeholder="مثلاً موبایل احمد">
+      </div>
+
+      <div class="formGroup">
+        <label>نام صاحب دوکان</label>
+        <input id="regOwner" type="text" placeholder="نام صاحب دوکان">
+      </div>
+
+      <div class="formGroup">
+        <label>نام کاربری</label>
+        <input id="regUsername" type="text" placeholder="نام کاربری">
+      </div>
+
+      <div class="formGroup">
+        <label>رمز عبور</label>
+        <input id="regPassword" type="password" placeholder="حداقل 4 حرف">
+      </div>
+
+      <button class="mainBtn" onclick="registerShop()">ثبت دوکان</button>
+
+    </div>
+
+    <div id="authMessage" class="message"></div>
+
   </div>
- </div>
+
 </div>
 
 
-<div id="app" class="hidden">
+<!-- APP -->
 
- <div class="top">
-  <h2>📱 دوکان‌یار</h2>
-  <div id="topInfo" class="status">در حال اتصال...</div>
- </div>
+<div id="appPage" class="hidden">
 
- <div class="container">
+  <div class="topbar">
 
-  <div class="nav">
-   <button id="navDashboard" onclick="showSection('dashboard')">📊 داشبورد</button>
-   <button id="navProducts" onclick="showSection('products')">📦 اجناس</button>
-   <button id="navBuy" onclick="showSection('buy')">🛒 خرید</button>
-   <button id="navSell" onclick="showSection('sell')">💵 فروش</button>
-   <button id="navHistory" onclick="showSection('history')">🧾 گزارش</button>
-   <button id="navWorkers" onclick="showSection('workers')">👤 کارکنان</button>
-   <button onclick="logout()">🚪 خروج</button>
+    <div class="topTitle">دوکان‌یار</div>
+
+    <div class="topActions">
+
+      <span id="serverStatus" class="serverStatus">
+        <span id="statusDot" class="dot"></span>
+        اتصال...
+      </span>
+
+      <button class="iconBtn" onclick="logout()">خروج</button>
+
+    </div>
+
+  </div>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+
+      <button class="navBtn active" onclick="showSection('dashboard',this)">🏠 داشبورد</button>
+      <button class="navBtn" onclick="showSection('products',this)">📦 اجناس</button>
+      <button class="navBtn" onclick="showSection('buy',this)">🛒 خرید</button>
+      <button class="navBtn" onclick="showSection('sell',this)">💰 فروش</button>
+      <button class="navBtn" onclick="showSection('history',this)">📋 تاریخچه</button>
+      <button class="navBtn" onclick="showSection('workers',this)">👥 کارمندان</button>
+      <button class="navBtn" onclick="showSection('settings',this)">⚙️ تنظیمات</button>
+
+    </aside>
+
+    <main class="content">
+
+      <!-- DASHBOARD -->
+
+      <section id="section-dashboard" class="section active">
+
+        <h2 class="pageTitle">داشبورد</h2>
+
+        <div class="cards">
+
+          <div class="card">
+            <div class="cardTitle">مجموع فروش</div>
+            <div id="dashSales" class="cardValue">0 ؋</div>
+          </div>
+
+          <div class="card">
+            <div class="cardTitle">مجموع خرید</div>
+            <div id="dashPurchases" class="cardValue">0 ؋</div>
+          </div>
+
+          <div class="card">
+            <div class="cardTitle">سود</div>
+            <div id="dashProfit" class="cardValue">0 ؋</div>
+          </div>
+
+          <div class="card">
+            <div class="cardTitle">تعداد اجناس</div>
+            <div id="dashProducts" class="cardValue">0</div>
+          </div>
+
+        </div>
+
+        <div class="grid2">
+
+          <div class="panel">
+
+            <h3>وضعیت دوکان</h3>
+
+            <div class="receiptRow">
+              <span>نام دوکان</span>
+              <strong id="dashShop">-</strong>
+            </div>
+
+            <div class="receiptRow">
+              <span>صاحب دوکان</span>
+              <strong id="dashOwner">-</strong>
+            </div>
+
+            <div class="receiptRow">
+              <span>کاربر</span>
+              <strong id="dashUser">-</strong>
+            </div>
+
+          </div>
+
+          <div class="panel">
+
+            <h3>فروش بر اساس ارز</h3>
+
+            <div class="receiptRow">
+              <span>فروش افغانی</span>
+              <strong id="dashAfn">0 ؋</strong>
+            </div>
+
+            <div class="receiptRow">
+              <span>فروش دالری</span>
+              <strong id="dashUsd">$0</strong>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="panel">
+
+          <h3>آخرین معاملات</h3>
+
+          <div id="dashboardTransactions"></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- PRODUCTS -->
+
+      <section id="section-products" class="section">
+
+        <h2 class="pageTitle">📦 اجناس</h2>
+
+        <div class="panel">
+
+          <h3>افزودن جنس جدید</h3>
+
+          <div class="formGrid">
+
+            <div class="formGroup">
+              <label>نام جنس</label>
+              <input id="productName" placeholder="مثلاً LCD">
+            </div>
+
+            <div class="formGroup">
+              <label>برند</label>
+              <input id="productBrand" placeholder="Samsung">
+            </div>
+
+            <div class="formGroup">
+              <label>مدل</label>
+              <input id="productModel" placeholder="A52">
+            </div>
+
+            <div class="formGroup">
+              <label>حداقل موجودی</label>
+              <input id="productMin" type="number" value="1">
+            </div>
+
+          </div>
+
+          <button class="actionBtn btnDark" onclick="addProduct()">افزودن جنس</button>
+
+        </div>
+
+        <div class="panel">
+
+          <h3>موجودی</h3>
+
+          <input
+            id="productSearch"
+            placeholder="🔎 جستجوی جنس..."
+            oninput="renderProducts()"
+            style="width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:15px"
+          >
+
+          <div id="productsTable"></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- BUY -->
+
+      <section id="section-buy" class="section">
+
+        <h2 class="pageTitle">🛒 خرید جنس</h2>
+
+        <div class="panel">
+
+          <div class="notice">
+            هر خرید می‌تواند جداگانه با <strong>افغانی یا دالر</strong> ثبت شود.
+          </div>
+
+          <div class="formGrid">
+
+            <div class="formGroup">
+              <label>جنس</label>
+              <select id="buyProduct"></select>
+            </div>
+
+            <div class="formGroup">
+              <label>تعداد</label>
+              <input id="buyQty" type="number" min="1" value="1" oninput="updateBuyTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>قیمت خرید هر عدد</label>
+              <input id="buyPrice" type="number" step="0.01" oninput="updateBuyTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>نوع رسید</label>
+              <select id="buyCurrency" onchange="currencyChanged('buy')">
+                <option value="AFN">افغانی (؋)</option>
+                <option value="USD">دالر ($)</option>
+              </select>
+            </div>
+
+            <div id="buyRateBox" class="formGroup hidden">
+              <label>نرخ دالر به افغانی</label>
+              <input id="buyRate" type="number" step="0.01" value="70" oninput="updateBuyTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>مجموع</label>
+              <input id="buyTotal" readonly>
+            </div>
+
+          </div>
+
+          <button class="actionBtn btnBlue" onclick="buyProduct()">ثبت خرید و ساخت رسید</button>
+
+        </div>
+
+      </section>
+
+
+      <!-- SELL -->
+
+      <section id="section-sell" class="section">
+
+        <h2 class="pageTitle">💰 فروش جنس</h2>
+
+        <div class="panel">
+
+          <div class="notice">
+            فروشنده می‌تواند برای هر فروش جداگانه <strong>افغانی یا دالر</strong> انتخاب کند.
+          </div>
+
+          <div class="formGrid">
+
+            <div class="formGroup">
+              <label>جنس</label>
+              <select id="sellProduct" onchange="updateSellAvailable()"></select>
+            </div>
+
+            <div class="formGroup">
+              <label>موجودی</label>
+              <input id="sellAvailable" readonly>
+            </div>
+
+            <div class="formGroup">
+              <label>تعداد</label>
+              <input id="sellQty" type="number" min="1" value="1" oninput="updateSellTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>قیمت فروش هر عدد</label>
+              <input id="sellPrice" type="number" step="0.01" oninput="updateSellTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>نوع رسید</label>
+              <select id="sellCurrency" onchange="currencyChanged('sell')">
+                <option value="AFN">افغانی (؋)</option>
+                <option value="USD">دالر ($)</option>
+              </select>
+            </div>
+
+            <div id="sellRateBox" class="formGroup hidden">
+              <label>نرخ دالر به افغانی</label>
+              <input id="sellRate" type="number" step="0.01" value="70" oninput="updateSellTotal()">
+            </div>
+
+            <div class="formGroup">
+              <label>مجموع فروش</label>
+              <input id="sellTotal" readonly>
+            </div>
+
+          </div>
+
+          <button class="actionBtn btnGreen" onclick="sellProduct()">ثبت فروش و ساخت رسید</button>
+
+        </div>
+
+      </section>
+
+
+      <!-- HISTORY -->
+
+      <section id="section-history" class="section">
+
+        <h2 class="pageTitle">📋 تاریخچه معاملات</h2>
+
+        <div class="panel">
+
+          <div id="historyTable"></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- WORKERS -->
+
+      <section id="section-workers" class="section">
+
+        <h2 class="pageTitle">👥 کارمندان</h2>
+
+        <div class="panel">
+
+          <h3>افزودن کارمند</h3>
+
+          <div class="formGrid">
+
+            <div class="formGroup">
+              <label>نام کارمند</label>
+              <input id="workerName">
+            </div>
+
+            <div class="formGroup">
+              <label>نام کاربری</label>
+              <input id="workerUsername">
+            </div>
+
+            <div class="formGroup">
+              <label>رمز عبور</label>
+              <input id="workerPassword" type="password">
+            </div>
+
+          </div>
+
+          <button class="actionBtn btnDark" onclick="addWorker()">افزودن کارمند</button>
+
+        </div>
+
+        <div class="panel">
+
+          <h3>لیست کارمندان</h3>
+
+          <div id="workersTable"></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- SETTINGS -->
+
+      <section id="section-settings" class="section">
+
+        <h2 class="pageTitle">⚙️ تنظیمات دوکان</h2>
+
+        <div class="panel">
+
+          <div class="formGrid">
+
+            <div class="formGroup">
+              <label>نام دوکان</label>
+              <input id="shopName">
+            </div>
+
+            <div class="formGroup">
+              <label>نام صاحب دوکان</label>
+              <input id="shopOwner">
+            </div>
+
+            <div class="formGroup">
+              <label>شماره تماس</label>
+              <input id="shopPhone">
+            </div>
+
+            <div class="formGroup">
+              <label>آدرس</label>
+              <input id="shopAddress">
+            </div>
+
+          </div>
+
+          <button class="actionBtn btnBlue" onclick="saveShop()">ذخیره تنظیمات</button>
+
+        </div>
+
+        <div class="panel">
+
+          <h3>پشتیبان‌گیری</h3>
+
+          <p>برای نگهداری یک نسخه از اطلاعات دوکان، فایل پشتیبان دریافت کنید.</p>
+
+          <button class="actionBtn btnDark" onclick="backupData()">دریافت پشتیبان</button>
+
+          <input id="restoreFile" type="file" accept=".json" onchange="restoreData(event)" style="margin-top:10px">
+
+        </div>
+
+      </section>
+
+    </main>
+
   </div>
 
 
-  <!-- DASHBOARD -->
-  <section id="dashboard" class="section">
+  <div class="mobileNav">
 
-   <div class="card">
-    <h2>📊 داشبورد</h2>
-    <div id="shopTitle">دوکان</div>
+    <button class="active" onclick="showSection('dashboard',this)">🏠<br>خانه</button>
+    <button onclick="showSection('products',this)">📦<br>اجناس</button>
+    <button onclick="showSection('buy',this)">🛒<br>خرید</button>
+    <button onclick="showSection('sell',this)">💰<br>فروش</button>
+    <button onclick="showSection('history',this)">📋<br>تاریخچه</button>
 
-    <div style="margin-top:12px">
-     <span class="badge good">🟢 سرور فعال</span>
-     <span id="currencyBadge" class="badge">AFN</span>
-    </div>
-   </div>
+  </div>
 
-   <div class="grid">
+</div>
 
-    <div class="stat">
-     <small>💵 مجموع فروش</small>
-     <strong id="totalSales">0</strong>
-    </div>
 
-    <div class="stat">
-     <small>🛒 مجموع خرید</small>
-     <strong id="totalPurchases">0</strong>
-    </div>
+<!-- RECEIPT MODAL -->
 
-    <div class="stat">
-     <small>📈 سود واقعی</small>
-     <strong id="totalProfit">0</strong>
-    </div>
+<div id="receiptModal" class="modal">
 
-    <div class="stat">
-     <small>📦 ارزش موجودی</small>
-     <strong id="inventoryValue">0</strong>
+  <div class="modalBox">
+
+    <div id="receiptContent"></div>
+
+    <div class="modalActions">
+
+      <button onclick="printReceipt()" class="btnDark">🖨 چاپ رسید</button>
+
+      <button onclick="closeReceipt()" class="btnBlue">بستن</button>
+
     </div>
 
-    <div class="stat">
-     <small>💰 پول نقد تقریبی</small>
-     <strong id="cashValue">0</strong>
-    </div>
+  </div>
 
-    <div class="stat">
-     <small>📦 تعداد محصولات</small>
-     <strong id="productCount">0</strong>
-    </div>
-
-    <div class="stat">
-     <small>🔢 تعداد کل موجودی</small>
-     <strong id="stockCount">0</strong>
-    </div>
-
-    <div class="stat">
-     <small>⚠️ اجناس کم‌موجود</small>
-     <strong id="lowCount">0</strong>
-    </div>
-
-   </div>
-
-   <div class="card">
-    <h3>📅 گزارش فروش و سود</h3>
-
-    <div class="grid">
-     <div class="stat">
-      <small>امروز</small>
-      <strong id="todayProfit">0</strong>
-     </div>
-
-     <div class="stat">
-      <small>۷ روز اخیر</small>
-      <strong id="weekProfit">0</strong>
-     </div>
-
-     <div class="stat">
-      <small>۳۰ روز اخیر</small>
-      <strong id="monthProfit">0</strong>
-     </div>
-
-     <div class="stat">
-      <small>کل سود</small>
-      <strong id="allProfit">0</strong>
-     </div>
-    </div>
-   </div>
-
-   <div class="card">
-    <h3>⚠️ اجناس کم‌موجود</h3>
-    <div id="lowStockList">در حال بررسی...</div>
-   </div>
-
-  </section>
-
-
-  <!-- PRODUCTS -->
-  <section id="products" class="section hidden">
-
-   <div class="card">
-    <h2>📦 مدیریت اجناس</h2>
-
-    <div id="productMsg" class="message"></div>
-
-    <div class="row">
-     <div>
-      <label>نام جنس</label>
-      <input id="pName" placeholder="مثلاً LCD">
-     </div>
-
-     <div>
-      <label>برند</label>
-      <input id="pBrand" placeholder="مثلاً Samsung">
-     </div>
-
-     <div>
-      <label>مدل</label>
-      <input id="pModel" placeholder="مثلاً A12">
-     </div>
-
-     <div>
-      <label>قیمت خرید</label>
-      <input id="pBuy" type="number" step="0.01" placeholder="0">
-     </div>
-
-     <div>
-      <label>قیمت فروش</label>
-      <input id="pSell" type="number" step="0.01" placeholder="0">
-     </div>
-
-     <div>
-      <label>موجودی</label>
-      <input id="pQty" type="number" step="1" placeholder="0">
-     </div>
-    </div>
-
-    <button class="btn-blue" onclick="addProduct()">➕ اضافه کردن جنس</button>
-   </div>
-
-   <div class="card">
-    <h3>🔎 جستجوی جنس</h3>
-    <input id="productSearch" oninput="renderProducts()" placeholder="نام، برند یا مدل...">
-   </div>
-
-   <div class="card">
-    <div class="table-wrap">
-     <table>
-      <thead>
-       <tr>
-        <th>جنس</th>
-        <th>برند</th>
-        <th>مدل</th>
-        <th>خرید</th>
-        <th>فروش</th>
-        <th>موجودی</th>
-        <th>عملیات</th>
-       </tr>
-      </thead>
-      <tbody id="productsTable"></tbody>
-     </table>
-    </div>
-   </div>
-
-  </section>
-
-
-  <!-- BUY -->
-  <section id="buy" class="section hidden">
-
-   <div class="card">
-    <h2>🛒 ثبت خرید</h2>
-
-    <div id="buyMsg" class="message"></div>
-
-    <label>جنس</label>
-    <select id="buyProduct"></select>
-
-    <div class="row">
-     <div>
-      <label>تعداد</label>
-      <input id="buyQty" type="number" min="1" value="1">
-     </div>
-
-     <div>
-      <label>قیمت خرید هر عدد</label>
-      <input id="buyPrice" type="number" min="0" step="0.01">
-     </div>
-    </div>
-
-    <button class="btn-orange" onclick="buyProduct()">🛒 ثبت خرید</button>
-   </div>
-
-  </section>
-
-
-  <!-- SELL -->
-  <section id="sell" class="section hidden">
-
-   <div class="card">
-    <h2>💵 ثبت فروش</h2>
-
-    <div id="sellMsg" class="message"></div>
-
-    <label>جنس</label>
-    <select id="sellProduct" onchange="showSellPrice()"></select>
-
-    <div id="sellInfo" class="money-box"></div>
-
-    <div class="row">
-     <div>
-      <label>تعداد</label>
-      <input id="sellQty" type="number" min="1" value="1">
-     </div>
-
-     <div>
-      <label>قیمت فروش هر عدد</label>
-      <input id="sellPrice" type="number" min="0" step="0.01">
-     </div>
-    </div>
-
-    <button class="btn-green" onclick="sellProduct()">💵 ثبت فروش</button>
-   </div>
-
-  </section>
-
-
-  <!-- HISTORY -->
-  <section id="history" class="section hidden">
-
-   <div class="card">
-    <h2>🧾 گزارش خرید و فروش</h2>
-
-    <div class="row">
-     <div>
-      <label>نوع گزارش</label>
-      <select id="historyType" onchange="renderHistory()">
-       <option value="">همه</option>
-       <option value="فروش">فروش</option>
-       <option value="خرید">خرید</option>
-      </select>
-     </div>
-
-     <div>
-      <label>جستجو</label>
-      <input id="historySearch" oninput="renderHistory()" placeholder="جستجو...">
-     </div>
-    </div>
-   </div>
-
-   <div class="card">
-    <div class="table-wrap">
-     <table>
-      <thead>
-       <tr>
-        <th>نوع</th>
-        <th>جنس</th>
-        <th>تعداد</th>
-        <th>مبلغ</th>
-        <th>سود</th>
-        <th>تاریخ</th>
-       </tr>
-      </thead>
-      <tbody id="historyTable"></tbody>
-     </table>
-    </div>
-   </div>
-
-  </section>
-
-
-  <!-- WORKERS -->
-  <section id="workers" class="section hidden">
-
-   <div class="card">
-    <h2>👤 کارکنان</h2>
-
-    <div id="workerMsg" class="message"></div>
-
-    <div class="row">
-     <div>
-      <label>نام کارمند</label>
-      <input id="workerUsername" placeholder="نام کاربری">
-     </div>
-
-     <div>
-      <label>رمز عبور</label>
-      <input id="workerPassword" type="password" placeholder="رمز">
-     </div>
-    </div>
-
-    <button class="btn-blue" onclick="addWorker()">➕ اضافه کردن کارمند</button>
-   </div>
-
-   <div class="card">
-    <div class="table-wrap">
-     <table>
-      <thead>
-       <tr>
-        <th>کارمند</th>
-        <th>نقش</th>
-        <th>عملیات</th>
-       </tr>
-      </thead>
-      <tbody id="workersTable"></tbody>
-     </table>
-    </div>
-   </div>
-
-  </section>
-
-
-  <!-- SETTINGS -->
-  <section id="settings" class="section hidden">
-
-   <div class="card">
-    <h2>⚙️ تنظیمات ارز</h2>
-
-    <label>ارز اصلی دوکان</label>
-
-    <select id="currencySelect">
-     <option value="AFN">🇦🇫 افغانی (AFN)</option>
-     <option value="USD">🇺🇸 دالر (USD)</option>
-    </select>
-
-    <label>نرخ تبدیل</label>
-    <div>1 USD = چند افغانی؟</div>
-
-    <input id="usdRate" type="number" min="1" step="0.01" value="70">
-
-    <button class="btn-blue" onclick="saveCurrencySettings()">
-     💾 ذخیره تنظیمات
-    </button>
-
-    <div id="currencyMsg" class="message"></div>
-
-    <div class="money-box">
-     <b>مثال:</b><br>
-     اگر نرخ تبدیل 70 باشد:<br>
-     700 ؋ = $10.00
-    </div>
-   </div>
-
-   <div class="card">
-    <h2>🏪 معلومات دوکان</h2>
-    <input id="shopNameSetting" placeholder="نام دوکان">
-    <button class="btn-blue" onclick="saveShop()">💾 ذخیره نام دوکان</button>
-   </div>
-
-   <div class="card">
-    <h2>💾 پشتیبان‌گیری</h2>
-    <p>برای امنیت اطلاعات، می‌توانی اطلاعات قابل دسترس را در مرورگر ذخیره کنی.</p>
-    <button class="btn-gray" onclick="downloadBackup()">⬇️ پشتیبان‌گیری</button>
-   </div>
-
-  </section>
-
- </div>
 </div>
 
 
 <script>
-/* =====================================================
-   دوکان‌یار
-   نسخه ساده و پایدار
-===================================================== */
 
-const API_BASE = "https://dokanyar-six.vercel.app/api";
+/* =========================
+   CONFIG
+========================= */
 
-let token = localStorage.getItem("dokanyar_token") || "";
-let currentUser = null;
-let products = [];
-let transactions = [];
-let workers = [];
+var API = "https://dokanyar-six.vercel.app/api";
+
+var token = localStorage.getItem("dokanyar_token") || "";
+
+var currentUser = null;
+var currentShop = null;
+var products = [];
+var transactions = [];
+var workers = [];
 
 
 /* =========================
-   پیام
+   BASIC HELPERS
 ========================= */
 
-function message(id, text, type) {
- const el = document.getElementById(id);
- if (!el) return;
+function $(id){
+  return document.getElementById(id);
+}
 
- el.textContent = text;
- el.className = "message " + (type || "success");
+function money(value, currency){
+  value = Number(value || 0);
 
- setTimeout(function(){
-   el.className = "message";
- }, 3500);
+  if(currency === "USD"){
+    return "$" + value.toFixed(2);
+  }
+
+  return value.toLocaleString("en-US",{
+    minimumFractionDigits:0,
+    maximumFractionDigits:2
+  }) + " ؋";
+}
+
+function showMessage(text, ok){
+  var el = $("authMessage");
+
+  el.style.display = "block";
+  el.textContent = text;
+
+  if(ok){
+    el.style.background = "#dcfce7";
+    el.style.color = "#166534";
+  }else{
+    el.style.background = "#fee2e2";
+    el.style.color = "#991b1b";
+  }
+}
+
+function escapeHtml(text){
+  if(text === null || text === undefined){
+    return "";
+  }
+
+  return String(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
 
@@ -640,1548 +1123,1293 @@ function message(id, text, type) {
    API
 ========================= */
 
-async function api(path, options) {
+async function api(path, options){
 
- options = options || {};
+  options = options || {};
 
- const headers = Object.assign({
-   "Content-Type":"application/json"
- }, options.headers || {});
+  var headers = options.headers || {};
 
- if (token) {
-   headers.Authorization = "Bearer " + token;
- }
+  headers["Content-Type"] = "application/json";
 
- try {
+  if(token){
+    headers["Authorization"] = "Bearer " + token;
+  }
 
-   const response = await fetch(API_BASE + path, {
-     method: options.method || "GET",
-     headers: headers,
-     body: options.body
-   });
+  options.headers = headers;
 
-   const text = await response.text();
+  try{
 
-   let data;
+    var response = await fetch(API + path, options);
 
-   try {
-     data = JSON.parse(text);
-   } catch(e) {
-     throw new Error(
-       "پاسخ سرور JSON نیست. وضعیت: " +
-       response.status
-     );
-   }
+    var text = await response.text();
 
-   if (!response.ok || data.success === false) {
-     throw new Error(
-       data.error ||
-       data.message ||
-       "خطا در ارتباط با سرور"
-     );
-   }
+    var data;
 
-   return data;
+    try{
+      data = JSON.parse(text);
+    }catch(e){
 
- } catch(error) {
+      throw new Error(
+        "پاسخ سرور نامعتبر است. وضعیت: " +
+        response.status
+      );
 
-   console.error(error);
-   throw error;
- }
+    }
+
+    if(!response.ok || data.success === false){
+
+      throw new Error(
+        data.error ||
+        data.message ||
+        "خطا در ارتباط با سرور"
+      );
+
+    }
+
+    return data;
+
+  }catch(error){
+
+    console.error(error);
+
+    throw error;
+  }
 }
 
 
 /* =========================
-   صفحه ورود
+   AUTH
 ========================= */
 
-function showLogin() {
+function showAuth(type){
 
- document.getElementById("loginBox").classList.remove("hidden");
- document.getElementById("registerBox").classList.add("hidden");
+  if(type === "login"){
 
- document.getElementById("loginTab").classList.add("active");
- document.getElementById("registerTab").classList.remove("active");
+    $("loginForm").classList.remove("hidden");
+    $("registerForm").classList.add("hidden");
+
+    $("loginTab").classList.add("active");
+    $("registerTab").classList.remove("active");
+
+  }else{
+
+    $("loginForm").classList.add("hidden");
+    $("registerForm").classList.remove("hidden");
+
+    $("loginTab").classList.remove("active");
+    $("registerTab").classList.add("active");
+
+  }
+
+  $("authMessage").style.display = "none";
 }
 
 
-function showRegister() {
+async function login(){
 
- document.getElementById("loginBox").classList.add("hidden");
- document.getElementById("registerBox").classList.remove("hidden");
+  var username = $("loginUsername").value.trim();
+  var password = $("loginPassword").value;
 
- document.getElementById("loginTab").classList.remove("active");
- document.getElementById("registerTab").classList.add("active");
+  if(!username || !password){
+
+    showMessage("نام کاربری و رمز عبور را وارد کنید.",false);
+    return;
+  }
+
+  showMessage("در حال ورود...",true);
+
+  try{
+
+    var data = await api("/login",{
+      method:"POST",
+      body:JSON.stringify({
+        username:username,
+        password:password
+      })
+    });
+
+    token = data.token;
+
+    localStorage.setItem("dokanyar_token",token);
+
+    showMessage("ورود موفق بود.",true);
+
+    await startApp();
+
+  }catch(error){
+
+    showMessage(error.message,false);
+  }
+}
+
+
+async function registerShop(){
+
+  var shop = $("regShop").value.trim();
+  var owner = $("regOwner").value.trim();
+  var username = $("regUsername").value.trim();
+  var password = $("regPassword").value;
+
+  if(!shop || !owner || !username || !password){
+
+    showMessage("تمام معلومات را وارد کنید.",false);
+    return;
+  }
+
+  if(password.length < 4){
+
+    showMessage("رمز عبور حداقل 4 حرف باشد.",false);
+    return;
+  }
+
+  showMessage("در حال ثبت دوکان...",true);
+
+  try{
+
+    var data = await api("/register",{
+      method:"POST",
+      body:JSON.stringify({
+        shop_name:shop,
+        owner_name:owner,
+        username:username,
+        password:password
+      })
+    });
+
+    token = data.token;
+
+    localStorage.setItem("dokanyar_token",token);
+
+    await startApp();
+
+  }catch(error){
+
+    showMessage(error.message,false);
+  }
+}
+
+
+async function logout(){
+
+  try{
+
+    await api("/logout",{
+      method:"POST"
+    });
+
+  }catch(e){}
+
+  token = "";
+
+  localStorage.removeItem("dokanyar_token");
+
+  $("appPage").classList.add("hidden");
+  $("authPage").classList.remove("hidden");
+
+  showAuth("login");
 }
 
 
 /* =========================
-   ثبت دوکان
+   START APP
 ========================= */
 
-async function registerShop() {
+async function startApp(){
 
- const shop_name =
-   document.getElementById("shopName").value.trim();
+  if(!token){
+    return;
+  }
 
- const username =
-   document.getElementById("regUsername").value.trim();
+  try{
 
- const password =
-   document.getElementById("regPassword").value;
+    var data = await api("/me");
 
- if (!shop_name || !username || !password) {
-   message("msg","تمام قسمت‌ها را پر کن","error");
-   return;
- }
+    currentUser = data.user || null;
+    currentShop = data.shop || null;
 
- if (password.length < 4) {
-   message("msg","رمز عبور حداقل 4 حرف باشد","error");
-   return;
- }
+    $("authPage").classList.add("hidden");
+    $("appPage").classList.remove("hidden");
 
- try {
+    $("statusDot").classList.add("ok");
+    $("serverStatus").innerHTML =
+      '<span id="statusDot" class="dot ok"></span> سرور متصل';
 
-   const data = await api("/register",{
-     method:"POST",
-     body:JSON.stringify({
-       shop_name:shop_name,
-       username:username,
-       password:password
-     })
-   });
+    fillShop();
 
-   if (data.token) {
-     token = data.token;
-     localStorage.setItem("dokanyar_token",token);
-   }
+    await loadAll();
 
-   message("msg","✅ دوکان با موفقیت ثبت شد","success");
+  }catch(error){
 
-   setTimeout(startApp,500);
+    token = "";
+    localStorage.removeItem("dokanyar_token");
 
- } catch(error) {
-   message("msg",error.message,"error");
- }
+    $("authPage").classList.remove("hidden");
+    $("appPage").classList.add("hidden");
+
+    showMessage(
+      "ورود منقضی شده یا اتصال برقرار نیست: " + error.message,
+      false
+    );
+  }
+}
+
+
+async function loadAll(){
+
+  await loadProducts();
+  await loadTransactions();
+  await loadDashboard();
+  await loadWorkers();
+
+  fillProductSelects();
+  renderProducts();
+  renderHistory();
+  renderWorkers();
 }
 
 
 /* =========================
-   ورود
+   NAVIGATION
 ========================= */
 
-async function login() {
+function showSection(name, button){
 
- const username =
-   document.getElementById("loginUsername").value.trim();
+  var sections = document.querySelectorAll(".section");
 
- const password =
-   document.getElementById("loginPassword").value;
+  for(var i=0;i<sections.length;i++){
+    sections[i].classList.remove("active");
+  }
 
- if (!username || !password) {
-   message("msg","نام کاربری و رمز را وارد کن","error");
-   return;
- }
+  var target = $("section-" + name);
 
- try {
+  if(target){
+    target.classList.add("active");
+  }
 
-   const data = await api("/login",{
-     method:"POST",
-     body:JSON.stringify({
-       username:username,
-       password:password
-     })
-   });
+  var buttons = document.querySelectorAll(".navBtn,.mobileNav button");
 
-   token = data.token || "";
+  for(var j=0;j<buttons.length;j++){
+    buttons[j].classList.remove("active");
+  }
 
-   if (!token) {
-     throw new Error("توکن ورود از سرور دریافت نشد");
-   }
-
-   localStorage.setItem(
-     "dokanyar_token",
-     token
-   );
-
-   await startApp();
-
- } catch(error) {
-   message("msg",error.message,"error");
- }
+  if(button){
+    button.classList.add("active");
+  }
 }
 
 
 /* =========================
-   شروع برنامه
+   PRODUCTS
 ========================= */
 
-async function startApp() {
+async function loadProducts(){
 
- if (!token) {
-   document.getElementById("loginPage").classList.remove("hidden");
-   document.getElementById("app").classList.add("hidden");
-   return;
- }
+  try{
 
- try {
+    var data = await api("/products");
 
-   const data = await api("/me");
+    products = data.products || [];
 
-   currentUser =
-     data.user ||
-     data.data ||
-     data;
+  }catch(error){
 
-   document.getElementById("loginPage").classList.add("hidden");
-   document.getElementById("app").classList.remove("hidden");
+    console.error(error);
+    products = [];
+  }
+}
 
-   document.getElementById("topInfo").textContent =
-     "🟢 وارد شده: " +
-     (currentUser.username || "");
 
-   showSection("dashboard");
+async function addProduct(){
 
-   await loadAll();
+  var name = $("productName").value.trim();
+  var brand = $("productBrand").value.trim();
+  var model = $("productModel").value.trim();
+  var min = Number($("productMin").value || 1);
 
- } catch(error) {
+  if(!name){
 
-   console.log(error);
+    alert("نام جنس را وارد کنید.");
+    return;
+  }
 
-   token = "";
-   localStorage.removeItem("dokanyar_token");
+  try{
 
-   document.getElementById("loginPage").classList.remove("hidden");
-   document.getElementById("app").classList.add("hidden");
+    await api("/products",{
+      method:"POST",
+      body:JSON.stringify({
+        name:name,
+        brand:brand,
+        model:model,
+        min_stock:min
+      })
+    });
 
-   message(
-     "msg",
-     "جلسه ورود منقضی شده؛ دوباره وارد شوید.",
-     "error"
-   );
- }
+    $("productName").value = "";
+    $("productBrand").value = "";
+    $("productModel").value = "";
+    $("productMin").value = "1";
+
+    await loadProducts();
+
+    fillProductSelects();
+    renderProducts();
+    await loadDashboard();
+
+    alert("جنس با موفقیت اضافه شد.");
+
+  }catch(error){
+
+    alert(error.message);
+  }
+}
+
+
+function renderProducts(){
+
+  var box = $("productsTable");
+
+  var search = $("productSearch").value.toLowerCase().trim();
+
+  var list = products.filter(function(p){
+
+    var text =
+      String(p.name || "") + " " +
+      String(p.brand || "") + " " +
+      String(p.model || "");
+
+    return text.toLowerCase().indexOf(search) !== -1;
+  });
+
+  if(list.length === 0){
+
+    box.innerHTML = '<div class="empty">هیچ جنس پیدا نشد.</div>';
+    return;
+  }
+
+  var html = "<div class='tableWrap'><table>";
+
+  html += "<tr>";
+  html += "<th>نام</th>";
+  html += "<th>برند</th>";
+  html += "<th>مدل</th>";
+  html += "<th>موجودی</th>";
+  html += "<th>قیمت خرید</th>";
+  html += "<th>قیمت فروش</th>";
+  html += "</tr>";
+
+  for(var i=0;i<list.length;i++){
+
+    var p = list[i];
+
+    var qty = Number(p.quantity || 0);
+
+    var badge = qty <= Number(p.min_stock || 1)
+      ? '<span class="badge red">کم</span>'
+      : '<span class="badge green">موجود</span>';
+
+    html += "<tr>";
+
+    html += "<td>" + escapeHtml(p.name) + "</td>";
+    html += "<td>" + escapeHtml(p.brand || "-") + "</td>";
+    html += "<td>" + escapeHtml(p.model || "-") + "</td>";
+    html += "<td>" + qty + " " + badge + "</td>";
+    html += "<td>" + money(p.buy_price,"AFN") + "</td>";
+    html += "<td>" + money(p.sell_price,"AFN") + "</td>";
+
+    html += "</tr>";
+  }
+
+  html += "</table></div>";
+
+  box.innerHTML = html;
+}
+
+
+function fillProductSelects(){
+
+  var buy = $("buyProduct");
+  var sell = $("sellProduct");
+
+  buy.innerHTML = '<option value="">انتخاب جنس</option>';
+  sell.innerHTML = '<option value="">انتخاب جنس</option>';
+
+  for(var i=0;i<products.length;i++){
+
+    var p = products[i];
+
+    var option =
+      '<option value="' + p.id + '">' +
+      escapeHtml(p.name) +
+      (p.brand ? " - " + escapeHtml(p.brand) : "") +
+      (p.model ? " " + escapeHtml(p.model) : "") +
+      " | موجودی: " + Number(p.quantity || 0) +
+      "</option>";
+
+    buy.innerHTML += option;
+    sell.innerHTML += option;
+  }
 }
 
 
 /* =========================
-   خروج
+   CURRENCY
 ========================= */
 
-async function logout() {
+function currencyChanged(type){
 
- try {
-   await api("/logout",{
-     method:"POST"
-   });
- } catch(e) {}
+  if(type === "buy"){
 
- token = "";
- currentUser = null;
+    var currency = $("buyCurrency").value;
 
- localStorage.removeItem("dokanyar_token");
+    if(currency === "USD"){
+      $("buyRateBox").classList.remove("hidden");
+    }else{
+      $("buyRateBox").classList.add("hidden");
+    }
 
- location.reload();
+    updateBuyTotal();
+
+  }else{
+
+    var currency2 = $("sellCurrency").value;
+
+    if(currency2 === "USD"){
+      $("sellRateBox").classList.remove("hidden");
+    }else{
+      $("sellRateBox").classList.add("hidden");
+    }
+
+    updateSellTotal();
+  }
+}
+
+
+function updateBuyTotal(){
+
+  var qty = Number($("buyQty").value || 0);
+  var price = Number($("buyPrice").value || 0);
+  var currency = $("buyCurrency").value;
+
+  var total = qty * price;
+
+  $("buyTotal").value = money(total,currency);
+
+}
+
+
+function updateSellTotal(){
+
+  var qty = Number($("sellQty").value || 0);
+  var price = Number($("sellPrice").value || 0);
+  var currency = $("sellCurrency").value;
+
+  var total = qty * price;
+
+  $("sellTotal").value = money(total,currency);
+}
+
+
+function updateSellAvailable(){
+
+  var id = Number($("sellProduct").value);
+
+  var p = products.find(function(x){
+    return Number(x.id) === id;
+  });
+
+  $("sellAvailable").value = p
+    ? Number(p.quantity || 0)
+    : "";
 }
 
 
 /* =========================
-   ناوبری
+   BUY
 ========================= */
 
-function showSection(name) {
+async function buyProduct(){
 
- const sections =
-   document.querySelectorAll(".section");
+  var productId = Number($("buyProduct").value);
+  var qty = Number($("buyQty").value);
+  var price = Number($("buyPrice").value);
+  var currency = $("buyCurrency").value;
 
- sections.forEach(function(section){
-   section.classList.add("hidden");
- });
+  var rate = 1;
 
- const selected =
-   document.getElementById(name);
+  if(currency === "USD"){
+    rate = Number($("buyRate").value);
+  }
 
- if (selected) {
-   selected.classList.remove("hidden");
- }
+  if(!productId){
 
- document.querySelectorAll(".nav button")
-   .forEach(function(btn){
-     btn.classList.remove("active");
-   });
+    alert("جنس را انتخاب کنید.");
+    return;
+  }
 
- const map = {
-   dashboard:"navDashboard",
-   products:"navProducts",
-   buy:"navBuy",
-   sell:"navSell",
-   history:"navHistory",
-   workers:"navWorkers"
- };
+  if(qty <= 0){
 
- if (map[name]) {
-   document.getElementById(map[name])
-     .classList.add("active");
- }
+    alert("تعداد معتبر نیست.");
+    return;
+  }
 
- if (name === "dashboard") {
-   loadDashboard();
- }
+  if(price <= 0){
 
- if (name === "products") {
-   loadProducts();
- }
+    alert("قیمت معتبر نیست.");
+    return;
+  }
 
- if (name === "buy" || name === "sell") {
-   loadProducts();
- }
+  if(currency === "USD" && rate <= 0){
 
- if (name === "history") {
-   loadTransactions();
- }
+    alert("نرخ دالر را وارد کنید.");
+    return;
+  }
 
- if (name === "workers") {
-   loadWorkers();
- }
+  try{
+
+    var data = await api("/buy",{
+      method:"POST",
+      body:JSON.stringify({
+        product_id:productId,
+        quantity:qty,
+        unit_price:price,
+        currency:currency,
+        currency_rate:rate
+      })
+    });
+
+    await loadProducts();
+    await loadTransactions();
+    await loadDashboard();
+
+    fillProductSelects();
+    renderProducts();
+    renderHistory();
+
+    showReceipt(data.transaction || data.receipt || {
+      type:"buy",
+      product_id:productId,
+      quantity:qty,
+      unit_price:price,
+      total:qty * price,
+      currency:currency,
+      currency_rate:rate
+    });
+
+    $("buyQty").value = 1;
+    $("buyPrice").value = "";
+
+    updateBuyTotal();
+
+  }catch(error){
+
+    alert(error.message);
+  }
 }
 
 
 /* =========================
-   ارز
+   SELL
 ========================= */
 
-function getCurrencySettings() {
+async function sellProduct(){
 
- try {
+  var productId = Number($("sellProduct").value);
+  var qty = Number($("sellQty").value);
+  var price = Number($("sellPrice").value);
+  var currency = $("sellCurrency").value;
 
-   const saved =
-     localStorage.getItem("dokanyar_currency");
+  var rate = 1;
 
-   if (saved) {
-     return JSON.parse(saved);
-   }
+  if(currency === "USD"){
+    rate = Number($("sellRate").value);
+  }
 
- } catch(e) {}
+  var p = products.find(function(x){
+    return Number(x.id) === productId;
+  });
 
- return {
-   currency:"AFN",
-   usdRate:70
- };
-}
+  if(!productId){
 
+    alert("جنس را انتخاب کنید.");
+    return;
+  }
 
-function loadCurrencySettings() {
+  if(!p){
 
- const settings =
-   getCurrencySettings();
+    alert("جنس پیدا نشد.");
+    return;
+  }
 
- const currency =
-   document.getElementById("currencySelect");
+  if(qty <= 0){
 
- const rate =
-   document.getElementById("usdRate");
+    alert("تعداد معتبر نیست.");
+    return;
+  }
 
- if (currency) {
-   currency.value =
-     settings.currency || "AFN";
- }
+  if(qty > Number(p.quantity || 0)){
 
- if (rate) {
-   rate.value =
-     settings.usdRate || 70;
- }
+    alert("موجودی کافی نیست.");
+    return;
+  }
 
- updateCurrencyBadge();
-}
+  if(price <= 0){
 
+    alert("قیمت فروش معتبر نیست.");
+    return;
+  }
 
-function saveCurrencySettings() {
+  if(currency === "USD" && rate <= 0){
 
- const currency =
-   document.getElementById("currencySelect").value;
+    alert("نرخ دالر را وارد کنید.");
+    return;
+  }
 
- let rate =
-   Number(document.getElementById("usdRate").value);
+  try{
 
- if (!rate || rate <= 0) {
-   rate = 70;
-   document.getElementById("usdRate").value = 70;
- }
+    var data = await api("/sell",{
+      method:"POST",
+      body:JSON.stringify({
+        product_id:productId,
+        quantity:qty,
+        unit_price:price,
+        currency:currency,
+        currency_rate:rate
+      })
+    });
 
- localStorage.setItem(
-   "dokanyar_currency",
-   JSON.stringify({
-     currency:currency,
-     usdRate:rate
-   })
- );
+    await loadProducts();
+    await loadTransactions();
+    await loadDashboard();
 
- updateCurrencyBadge();
+    fillProductSelects();
+    renderProducts();
+    renderHistory();
+    updateSellAvailable();
 
- message(
-   "currencyMsg",
-   "✅ تنظیمات ارز ذخیره شد",
-   "success"
- );
+    showReceipt(data.transaction || data.receipt || {
+      type:"sell",
+      product_id:productId,
+      quantity:qty,
+      unit_price:price,
+      total:qty * price,
+      currency:currency,
+      currency_rate:rate,
+      profit:data.profit || 0
+    });
 
- renderProducts();
- renderHistory();
- loadDashboard();
-}
+    $("sellQty").value = 1;
+    $("sellPrice").value = "";
 
+    updateSellTotal();
 
-function updateCurrencyBadge() {
+  }catch(error){
 
- const settings =
-   getCurrencySettings();
-
- const badge =
-   document.getElementById("currencyBadge");
-
- if (!badge) return;
-
- if (settings.currency === "USD") {
-   badge.textContent =
-     "🇺🇸 USD | 1 USD = " +
-     settings.usdRate +
-     " AFN";
- } else {
-   badge.textContent =
-     "🇦🇫 AFN | 1 USD = " +
-     settings.usdRate +
-     " AFN";
- }
-}
-
-
-/* مبلغ ذخیره‌شده در دیتابیس را AFN فرض می‌کنیم */
-function money(amount) {
-
- amount = Number(amount || 0);
-
- const settings =
-   getCurrencySettings();
-
- if (settings.currency === "USD") {
-
-   return "$" +
-     (amount / Number(settings.usdRate || 70))
-       .toFixed(2);
-
- }
-
- return amount.toLocaleString("en-US") +
-   " ؋";
-}
-
-
-function moneyBoth(amount) {
-
- amount = Number(amount || 0);
-
- const settings =
-   getCurrencySettings();
-
- const usd =
-   amount / Number(settings.usdRate || 70);
-
- return amount.toLocaleString("en-US") +
-   " ؋ / $" +
-   usd.toFixed(2);
+    alert(error.message);
+  }
 }
 
 
 /* =========================
-   محصولات
+   TRANSACTIONS
 ========================= */
 
-async function loadProducts() {
+async function loadTransactions(){
 
- try {
+  try{
 
-   const data =
-     await api("/products");
+    var data = await api("/transactions");
 
-   products =
-     data.products ||
-     data.data ||
-     [];
+    transactions = data.transactions || [];
 
-   renderProducts();
-   fillProductSelects();
+  }catch(error){
 
- } catch(error) {
-
-   console.log(error);
-
-   products = [];
-
-   renderProducts();
- }
+    console.error(error);
+    transactions = [];
+  }
 }
 
 
-function renderProducts() {
+function renderHistory(){
 
- const tbody =
-   document.getElementById("productsTable");
+  var box = $("historyTable");
 
- if (!tbody) return;
+  if(transactions.length === 0){
 
- const search =
-   (document.getElementById("productSearch")?.value || "")
-   .toLowerCase();
+    box.innerHTML = '<div class="empty">هنوز معامله‌ای ثبت نشده است.</div>';
+    return;
+  }
 
- tbody.innerHTML = "";
+  var html = "<div class='tableWrap'><table>";
 
- const filtered =
-   products.filter(function(p){
+  html += "<tr>";
+  html += "<th>نوع</th>";
+  html += "<th>جنس</th>";
+  html += "<th>تعداد</th>";
+  html += "<th>قیمت واحد</th>";
+  html += "<th>مجموع</th>";
+  html += "<th>ارز</th>";
+  html += "<th>سود</th>";
+  html += "<th>تاریخ</th>";
+  html += "</tr>";
 
-     const text =
-       (
-         (p.name || "") + " " +
-         (p.brand || "") + " " +
-         (p.model || "")
-       ).toLowerCase();
+  for(var i=0;i<transactions.length;i++){
 
-     return text.includes(search);
-   });
+    var t = transactions[i];
 
- if (!filtered.length) {
+    var type =
+      t.type === "sell"
+      ? '<span class="badge green">فروش</span>'
+      : '<span class="badge blue">خرید</span>';
 
-   tbody.innerHTML =
-     '<tr><td colspan="7">هنوز جنسی ثبت نشده است.</td></tr>';
+    var currency = t.currency || "AFN";
 
-   return;
- }
+    var date = t.created_at
+      ? new Date(t.created_at).toLocaleString("fa-AF")
+      : "-";
 
- filtered.forEach(function(p){
+    html += "<tr>";
 
-   const qty =
-     Number(p.quantity || p.qty || 0);
+    html += "<td>" + type + "</td>";
+    html += "<td>" + escapeHtml(t.product_name || t.name || "-") + "</td>";
+    html += "<td>" + Number(t.quantity || 0) + "</td>";
+    html += "<td>" + money(t.unit_price,currency) + "</td>";
+    html += "<td>" + money(t.total,currency) + "</td>";
+    html += "<td>" + (currency === "USD" ? "$ دالر" : "؋ افغانی") + "</td>";
 
-   const buy =
-     Number(p.buy_price || 0);
+    html += "<td>" +
+      (t.type === "sell"
+        ? money(t.profit || 0,"AFN")
+        : "-") +
+      "</td>";
 
-   const sell =
-     Number(p.sell_price || 0);
+    html += "<td>" + date + "</td>";
 
-   const tr =
-     document.createElement("tr");
+    html += "</tr>";
+  }
 
-   tr.innerHTML =
-     "<td>" + escapeHtml(p.name || "") + "</td>" +
-     "<td>" + escapeHtml(p.brand || "") + "</td>" +
-     "<td>" + escapeHtml(p.model || "") + "</td>" +
-     "<td>" + money(buy) + "</td>" +
-     "<td>" + money(sell) + "</td>" +
-     "<td>" +
-       '<span class="badge ' +
-       (qty <= 3 ? "low" : "good") +
-       '">' + qty + "</span>" +
-     "</td>" +
-     "<td>" +
-       '<button class="btn-red" onclick="deleteProduct(' +
-       Number(p.id) +
-       ')">حذف</button>' +
-     "</td>";
+  html += "</table></div>";
 
-   tbody.appendChild(tr);
- });
-}
-
-
-async function addProduct() {
-
- const name =
-   document.getElementById("pName").value.trim();
-
- const brand =
-   document.getElementById("pBrand").value.trim();
-
- const model =
-   document.getElementById("pModel").value.trim();
-
- const buy_price =
-   Number(document.getElementById("pBuy").value);
-
- const sell_price =
-   Number(document.getElementById("pSell").value);
-
- const quantity =
-   Number(document.getElementById("pQty").value || 0);
-
- if (!name) {
-   message("productMsg","نام جنس را وارد کن","error");
-   return;
- }
-
- if (buy_price < 0 || sell_price < 0 || quantity < 0) {
-   message("productMsg","قیمت و موجودی درست وارد شود","error");
-   return;
- }
-
- try {
-
-   await api("/products",{
-     method:"POST",
-     body:JSON.stringify({
-       name:name,
-       brand:brand,
-       model:model,
-       buy_price:buy_price,
-       sell_price:sell_price,
-       quantity:quantity
-     })
-   });
-
-   document.getElementById("pName").value="";
-   document.getElementById("pBrand").value="";
-   document.getElementById("pModel").value="";
-   document.getElementById("pBuy").value="";
-   document.getElementById("pSell").value="";
-   document.getElementById("pQty").value="";
-
-   message(
-     "productMsg",
-     "✅ جنس با موفقیت اضافه شد",
-     "success"
-   );
-
-   await loadProducts();
-   await loadDashboard();
-
- } catch(error) {
-
-   message(
-     "productMsg",
-     error.message,
-     "error"
-   );
- }
-}
-
-
-async function deleteProduct(id) {
-
- if (!confirm("این جنس حذف شود؟")) return;
-
- try {
-
-   await api("/products/" + id,{
-     method:"DELETE"
-   });
-
-   await loadProducts();
-   await loadDashboard();
-
- } catch(error) {
-
-   alert(error.message);
- }
+  box.innerHTML = html;
 }
 
 
 /* =========================
-   انتخاب محصولات
+   DASHBOARD
 ========================= */
 
-function fillProductSelects() {
+async function loadDashboard(){
 
- const buy =
-   document.getElementById("buyProduct");
+  try{
 
- const sell =
-   document.getElementById("sellProduct");
+    var data = await api("/dashboard");
 
- if (buy) buy.innerHTML =
-   '<option value="">انتخاب جنس</option>';
+    var d = data.dashboard || data;
 
- if (sell) sell.innerHTML =
-   '<option value="">انتخاب جنس</option>';
+    $("dashSales").textContent =
+      money(d.sales_total_afn || d.sales_total || 0,"AFN");
 
- products.forEach(function(p){
+    $("dashPurchases").textContent =
+      money(d.purchases_total_afn || d.purchases_total || 0,"AFN");
 
-   const id = Number(p.id);
+    $("dashProfit").textContent =
+      money(d.profit_total_afn || d.profit_total || 0,"AFN");
 
-   const text =
-     (p.name || "") +
-     " - موجودی: " +
-     Number(p.quantity || p.qty || 0);
+    $("dashProducts").textContent =
+      d.products_count !== undefined
+      ? d.products_count
+      : products.length;
 
-   if (buy) {
+    $("dashAfn").textContent =
+      money(
+        d.sales_afn ||
+        d.sales_by_currency_afn ||
+        0,
+        "AFN"
+      );
 
-     const option =
-       document.createElement("option");
+    $("dashUsd").textContent =
+      money(
+        d.sales_usd ||
+        d.sales_by_currency_usd ||
+        0,
+        "USD"
+      );
 
-     option.value = id;
-     option.textContent = text;
+  }catch(error){
 
-     buy.appendChild(option);
-   }
+    $("dashProducts").textContent = products.length;
+  }
 
-   if (sell) {
+  $("dashShop").textContent =
+    currentShop ? (currentShop.name || currentShop.shop_name || "-") : "-";
 
-     const option =
-       document.createElement("option");
+  $("dashOwner").textContent =
+    currentShop ? (currentShop.owner_name || "-") : "-";
 
-     option.value = id;
-     option.textContent = text;
+  $("dashUser").textContent =
+    currentUser ? (currentUser.username || "-") : "-";
 
-     sell.appendChild(option);
-   }
- });
+  renderDashboardTransactions();
 }
 
 
-function showSellPrice() {
+function renderDashboardTransactions(){
 
- const id =
-   Number(document.getElementById("sellProduct").value);
+  var box = $("dashboardTransactions");
 
- const p =
-   products.find(function(x){
-     return Number(x.id) === id;
-   });
+  var list = transactions.slice(0,5);
 
- if (!p) return;
+  if(list.length === 0){
 
- document.getElementById("sellPrice").value =
-   Number(p.sell_price || 0);
+    box.innerHTML = '<div class="empty">هنوز معامله‌ای ثبت نشده است.</div>';
+    return;
+  }
 
- const buy =
-   Number(p.buy_price || 0);
+  var html = "<div class='tableWrap'><table>";
 
- const sell =
-   Number(p.sell_price || 0);
+  html += "<tr>";
+  html += "<th>نوع</th>";
+  html += "<th>جنس</th>";
+  html += "<th>مجموع</th>";
+  html += "<th>ارز</th>";
+  html += "</tr>";
 
- const profit =
-   sell - buy;
+  for(var i=0;i<list.length;i++){
 
- document.getElementById("sellInfo").innerHTML =
-   "موجودی: <b>" +
-   Number(p.quantity || p.qty || 0) +
-   "</b><br>" +
-   "قیمت خرید: <b>" +
-   money(buy) +
-   "</b><br>" +
-   "قیمت فروش: <b>" +
-   money(sell) +
-   "</b><br>" +
-   "سود هر عدد: <b>" +
-   money(profit) +
-   "</b>";
+    var t = list[i];
+
+    html += "<tr>";
+
+    html += "<td>" +
+      (t.type === "sell"
+        ? '<span class="badge green">فروش</span>'
+        : '<span class="badge blue">خرید</span>') +
+      "</td>";
+
+    html += "<td>" +
+      escapeHtml(t.product_name || t.name || "-") +
+      "</td>";
+
+    html += "<td>" +
+      money(t.total,t.currency || "AFN") +
+      "</td>";
+
+    html += "<td>" +
+      (t.currency || "AFN") +
+      "</td>";
+
+    html += "</tr>";
+  }
+
+  html += "</table></div>";
+
+  box.innerHTML = html;
 }
 
 
 /* =========================
-   خرید
+   WORKERS
 ========================= */
 
-async function buyProduct() {
+async function loadWorkers(){
 
- const product_id =
-   Number(document.getElementById("buyProduct").value);
+  try{
 
- const quantity =
-   Number(document.getElementById("buyQty").value);
+    var data = await api("/workers");
 
- const unit_price =
-   Number(document.getElementById("buyPrice").value);
+    workers = data.workers || [];
 
- if (!product_id) {
-   message("buyMsg","جنس را انتخاب کن","error");
-   return;
- }
+  }catch(error){
 
- if (!quantity || quantity <= 0) {
-   message("buyMsg","تعداد را وارد کن","error");
-   return;
- }
+    workers = [];
+  }
+}
 
- if (unit_price < 0) {
-   message("buyMsg","قیمت خرید درست نیست","error");
-   return;
- }
 
- try {
+async function addWorker(){
 
-   await api("/buy",{
-     method:"POST",
-     body:JSON.stringify({
-       product_id:product_id,
-       quantity:quantity,
-       unit_price:unit_price
-     })
-   });
+  var name = $("workerName").value.trim();
+  var username = $("workerUsername").value.trim();
+  var password = $("workerPassword").value;
 
-   message(
-     "buyMsg",
-     "✅ خرید ثبت شد و میانگین قیمت خرید به‌روزرسانی شد.",
-     "success"
-   );
+  if(!name || !username || !password){
 
-   document.getElementById("buyQty").value=1;
-   document.getElementById("buyPrice").value="";
+    alert("تمام معلومات کارمند را وارد کنید.");
+    return;
+  }
 
-   await loadAll();
+  try{
 
- } catch(error) {
+    await api("/workers",{
+      method:"POST",
+      body:JSON.stringify({
+        name:name,
+        username:username,
+        password:password
+      })
+    });
 
-   message(
-     "buyMsg",
-     error.message,
-     "error"
-   );
- }
+    $("workerName").value = "";
+    $("workerUsername").value = "";
+    $("workerPassword").value = "";
+
+    await loadWorkers();
+
+    renderWorkers();
+
+    alert("کارمند اضافه شد.");
+
+  }catch(error){
+
+    alert(error.message);
+  }
+}
+
+
+function renderWorkers(){
+
+  var box = $("workersTable");
+
+  if(workers.length === 0){
+
+    box.innerHTML = '<div class="empty">کارمندی ثبت نشده است.</div>';
+    return;
+  }
+
+  var html = "<div class='tableWrap'><table>";
+
+  html += "<tr>";
+  html += "<th>نام</th>";
+  html += "<th>نام کاربری</th>";
+  html += "<th>نقش</th>";
+  html += "</tr>";
+
+  for(var i=0;i<workers.length;i++){
+
+    var w = workers[i];
+
+    html += "<tr>";
+
+    html += "<td>" + escapeHtml(w.name || "-") + "</td>";
+    html += "<td>" + escapeHtml(w.username || "-") + "</td>";
+    html += "<td><span class='badge'>کارمند</span></td>";
+
+    html += "</tr>";
+  }
+
+  html += "</table></div>";
+
+  box.innerHTML = html;
 }
 
 
 /* =========================
-   فروش
+   SHOP SETTINGS
 ========================= */
 
-async function sellProduct() {
+function fillShop(){
 
- const product_id =
-   Number(document.getElementById("sellProduct").value);
+  if(!currentShop){
+    return;
+  }
 
- const quantity =
-   Number(document.getElementById("sellQty").value);
+  $("shopName").value =
+    currentShop.name ||
+    currentShop.shop_name ||
+    "";
 
- const unit_price =
-   Number(document.getElementById("sellPrice").value);
+  $("shopOwner").value =
+    currentShop.owner_name ||
+    "";
 
- if (!product_id) {
-   message("sellMsg","جنس را انتخاب کن","error");
-   return;
- }
+  $("shopPhone").value =
+    currentShop.phone ||
+    "";
 
- if (!quantity || quantity <= 0) {
-   message("sellMsg","تعداد را وارد کن","error");
-   return;
- }
+  $("shopAddress").value =
+    currentShop.address ||
+    "";
+}
 
- if (!unit_price || unit_price < 0) {
-   message("sellMsg","قیمت فروش را وارد کن","error");
-   return;
- }
 
- try {
+async function saveShop(){
 
-   const data =
-     await api("/sell",{
-       method:"POST",
-       body:JSON.stringify({
-         product_id:product_id,
-         quantity:quantity,
-         unit_price:unit_price
-       })
-     });
+  try{
 
-   const profit =
-     data.profit ??
-     data.transaction?.profit ??
-     0;
+    var data = await api("/shop",{
+      method:"PUT",
+      body:JSON.stringify({
+        name:$("shopName").value.trim(),
+        owner_name:$("shopOwner").value.trim(),
+        phone:$("shopPhone").value.trim(),
+        address:$("shopAddress").value.trim()
+      })
+    });
 
-   message(
-     "sellMsg",
-     "✅ فروش ثبت شد. سود این فروش: " +
-     money(profit),
-     "success"
-   );
+    currentShop = data.shop || currentShop;
 
-   document.getElementById("sellQty").value=1;
+    fillShop();
 
-   await loadAll();
+    $("dashShop").textContent =
+      currentShop.name || "-";
 
- } catch(error) {
+    $("dashOwner").textContent =
+      currentShop.owner_name || "-";
 
-   message(
-     "sellMsg",
-     error.message,
-     "error"
-   );
- }
+    alert("تنظیمات ذخیره شد.");
+
+  }catch(error){
+
+    alert(error.message);
+  }
 }
 
 
 /* =========================
-   تراکنش‌ها
+   RECEIPT
 ========================= */
 
-async function loadTransactions() {
+var lastReceipt = null;
 
- try {
 
-   const data =
-     await api("/transactions");
+function showReceipt(t){
 
-   transactions =
-     data.transactions ||
-     data.data ||
-     [];
+  lastReceipt = t;
 
-   renderHistory();
+  var product = products.find(function(p){
+    return Number(p.id) === Number(t.product_id);
+  });
 
- } catch(error) {
+  var productName =
+    t.product_name ||
+    t.name ||
+    (product ? product.name : "-");
 
-   console.log(error);
-   transactions=[];
-   renderHistory();
- }
+  var currency = t.currency || "AFN";
+
+  var rate = Number(t.currency_rate || 1);
+
+  var date = t.created_at
+    ? new Date(t.created_at).toLocaleString("fa-AF")
+    : new Date().toLocaleString("fa-AF");
+
+  var typeText =
+    t.type === "sell"
+    ? "رسید فروش"
+    : "رسید خرید";
+
+  var total = Number(
+    t.total ||
+    (Number(t.quantity || 0) * Number(t.unit_price || 0))
+  );
+
+  var html = "";
+
+  html += '<div class="receipt">';
+
+  html += '<div class="receiptHead">';
+
+  html += "<h2>" +
+    escapeHtml(
+      currentShop
+      ? (currentShop.name || currentShop.shop_name || "دوکان‌یار")
+      : "دوکان‌یار"
+    ) +
+    "</h2>";
+
+  html += "<strong>" + typeText + "</strong>";
+
+  html += "<div style='margin-top:8px;font-size:12px'>" +
+    date +
+    "</div>";
+
+  html += "</div>";
+
+  html += '<div class="receiptRow"><span>جنس</span><strong>' +
+    escapeHtml(productName) +
+    "</strong></div>";
+
+  html += '<div class="receiptRow"><span>تعداد</span><strong>' +
+    Number(t.quantity || 0) +
+    "</strong></div>";
+
+  html += '<div class="receiptRow"><span>قیمت واحد</span><strong>' +
+    money(t.unit_price,currency) +
+    "</strong></div>";
+
+  html += '<div class="receiptRow"><span>نوع ارز</span><strong>' +
+    (currency === "USD" ? "دالر ($)" : "افغانی (؋)") +
+    "</strong></div>";
+
+  if(currency === "USD"){
+
+    html += '<div class="receiptRow"><span>نرخ دالر</span><strong>' +
+      rate +
+      " ؋</strong></div>";
+
+    html += '<div class="receiptRow"><span>معادل افغانی</span><strong>' +
+      money(total * rate,"AFN") +
+      "</strong></div>";
+  }
+
+  html += '<div class="receiptTotal">' +
+    money(total,currency) +
+    "</div>";
+
+  if(t.type === "sell" && t.profit !== undefined){
+
+    html += '<div class="receiptRow"><span>سود فروش</span><strong>' +
+      money(t.profit || 0,"AFN") +
+      "</strong></div>";
+  }
+
+  html += '<div style="text-align:center;margin-top:15px;font-size:12px;color:#666">';
+  html += "تشکر از خرید شما";
+  html += "</div>";
+
+  html += "</div>";
+
+  $("receiptContent").innerHTML = html;
+
+  $("receiptModal").classList.add("show");
 }
 
 
-function renderHistory() {
+function closeReceipt(){
 
- const tbody =
-   document.getElementById("historyTable");
+  $("receiptModal").classList.remove("show");
+}
 
- if (!tbody) return;
 
- const type =
-   document.getElementById("historyType")?.value || "";
+function printReceipt(){
 
- const search =
-   (
-     document.getElementById("historySearch")?.value || ""
-   ).toLowerCase();
+  if(!lastReceipt){
+    return;
+  }
 
- tbody.innerHTML="";
+  var content = $("receiptContent").innerHTML;
 
- const list =
-   transactions.filter(function(t){
+  var win = window.open("","_blank");
 
-     const ttype =
-       t.type || "";
+  if(!win){
 
-     const name =
-       (
-         t.product_name ||
-         t.name ||
-         t.product ||
-         ""
-       ).toLowerCase();
+    alert("مرورگر اجازه باز کردن صفحه چاپ را نداد.");
+    return;
+  }
 
-     return (
-       (!type || ttype === type) &&
-       name.includes(search)
-     );
-   });
+  win.document.write(
+    "<html><head><meta charset='UTF-8'>" +
+    "<title>رسید دوکان‌یار</title>" +
+    "<style>" +
+    "body{font-family:Tahoma,Arial;direction:rtl;padding:20px}" +
+    ".receipt{max-width:420px;margin:auto}" +
+    ".receiptRow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ddd}" +
+    ".receiptHead{text-align:center;border-bottom:1px dashed #777;padding-bottom:10px}" +
+    ".receiptTotal{text-align:center;font-size:24px;font-weight:bold;padding:15px}" +
+    "</style></head><body>" +
+    content +
+    "</body></html>"
+  );
 
- if (!list.length) {
+  win.document.close();
 
-   tbody.innerHTML =
-     '<tr><td colspan="6">گزارشی وجود ندارد.</td></tr>';
-
-   return;
- }
-
- list.forEach(function(t){
-
-   const qty =
-     Number(t.quantity || 0);
-
-   const amount =
-     Number(
-       t.total ||
-       t.total_amount ||
-       t.amount ||
-       (
-         Number(t.unit_price || 0) * qty
-       ) ||
-       0
-     );
-
-   const profit =
-     Number(t.profit || 0);
-
-   const date =
-     t.created_at ?
-     new Date(t.created_at).toLocaleString("fa-AF") :
-     "";
-
-   const name =
-     t.product_name ||
-     t.name ||
-     t.product ||
-     "-";
-
-   const tr =
-     document.createElement("tr");
-
-   tr.innerHTML =
-     "<td>" +
-       (t.type === "فروش" ? "💵 فروش" : "🛒 خرید") +
-     "</td>" +
-     "<td>" + escapeHtml(name) + "</td>" +
-     "<td>" + qty + "</td>" +
-     "<td>" + money(amount) + "</td>" +
-     "<td>" + money(profit) + "</td>" +
-     "<td>" + date + "</td>";
-
-   tbody.appendChild(tr);
- });
+  setTimeout(function(){
+    win.print();
+  },300);
 }
 
 
 /* =========================
-   داشبورد
+   BACKUP
 ========================= */
 
-async function loadDashboard() {
+function backupData(){
 
- try {
+  var backup = {
+    app:"Dokanyaar",
+    date:new Date().toISOString(),
+    shop:currentShop,
+    user:currentUser,
+    products:products,
+    transactions:transactions
+  };
 
-   const data =
-     await api("/dashboard");
+  var blob = new Blob(
+    [JSON.stringify(backup,null,2)],
+    {type:"application/json"}
+  );
 
-   /*
-     اگر API داشبورد اعداد آماده داشته باشد،
-     از آن استفاده می‌کنیم.
-   */
+  var url = URL.createObjectURL(blob);
 
-   const d =
-     data.dashboard ||
-     data.data ||
-     data;
+  var a = document.createElement("a");
 
-   if (d) {
+  a.href = url;
+  a.download =
+    "dokanyar-backup-" +
+    new Date().toISOString().slice(0,10) +
+    ".json";
 
-     setMoneyElement(
-       "totalSales",
-       d.total_sales ??
-       d.sales ??
-       null
-     );
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 
-     setMoneyElement(
-       "totalPurchases",
-       d.total_purchases ??
-       d.purchases ??
-       null
-     );
-
-     setMoneyElement(
-       "totalProfit",
-       d.total_profit ??
-       d.profit ??
-       null
-     );
-   }
-
- } catch(error) {
-
-   console.log(
-     "dashboard API:",
-     error.message
-   );
- }
-
- /*
-   دوباره از اطلاعات واقعی محصولات و تراکنش‌ها
-   محاسبه می‌کنیم تا اگر API داشبورد نام فیلد
-   متفاوت داشت، صفحه خالی نماند.
- */
-
- calculateDashboard();
-
+  URL.revokeObjectURL(url);
 }
 
 
-function setMoneyElement(id,value) {
+function restoreData(event){
 
- if (value === null ||
-     value === undefined) return;
+  var file = event.target.files[0];
 
- const el =
-   document.getElementById(id);
+  if(!file){
+    return;
+  }
 
- if (el) {
-   el.textContent = money(value);
- }
-}
+  var reader = new FileReader();
 
+  reader.onload = function(){
 
-function calculateDashboard() {
+    try{
 
- let inventory = 0;
- let stock = 0;
- let low = 0;
+      var data = JSON.parse(reader.result);
 
- products.forEach(function(p){
+      localStorage.setItem(
+        "dokanyar_backup_preview",
+        JSON.stringify(data)
+      );
 
-   const qty =
-     Number(p.quantity || p.qty || 0);
+      alert(
+        "فایل پشتیبان خوانده شد. " +
+        "برای جلوگیری از خراب شدن اطلاعات آنلاین، " +
+        "بازیابی مستقیم دیتابیس از این صفحه انجام نمی‌شود."
+      );
 
-   const buy =
-     Number(p.buy_price || 0);
+    }catch(e){
 
-   inventory += qty * buy;
-   stock += qty;
+      alert("فایل پشتیبان معتبر نیست.");
+    }
+  };
 
-   if (qty <= 3) low++;
- });
-
- let sales = 0;
- let purchases = 0;
- let profit = 0;
-
- transactions.forEach(function(t){
-
-   const amount =
-     Number(
-       t.total ||
-       t.total_amount ||
-       t.amount ||
-       (
-         Number(t.unit_price || 0) *
-         Number(t.quantity || 0)
-       ) ||
-       0
-     );
-
-   if (t.type === "فروش") {
-     sales += amount;
-     profit += Number(t.profit || 0);
-   }
-
-   if (t.type === "خرید") {
-     purchases += amount;
-   }
- });
-
- /*
-   اگر تراکنش‌ها در دسترس باشند،
-   محاسبه محلی دقیق‌تر نمایش داده می‌شود.
- */
-
- document.getElementById("totalSales").textContent =
-   money(sales);
-
- document.getElementById("totalPurchases").textContent =
-   money(purchases);
-
- document.getElementById("totalProfit").textContent =
-   money(profit);
-
- document.getElementById("inventoryValue").textContent =
-   money(inventory);
-
- /*
-   پول نقد تقریبی:
-   فروش - خرید
-   این عدد پول نقد حسابداری کامل نیست؛
-   چون هزینه‌های جانبی و سرمایه اولیه در این نسخه ثبت نمی‌شود.
- */
-
- const cash =
-   sales - purchases;
-
- document.getElementById("cashValue").textContent =
-   money(cash);
-
- document.getElementById("productCount").textContent =
-   products.length;
-
- document.getElementById("stockCount").textContent =
-   stock;
-
- document.getElementById("lowCount").textContent =
-   low;
-
- calculatePeriods();
- renderLowStock();
+  reader.readAsText(file);
 }
 
 
 /* =========================
-   سود روز/هفته/ماه
+   INITIALIZE
 ========================= */
 
-function calculatePeriods() {
+window.addEventListener("load",function(){
 
- const now = Date.now();
+  if(token){
 
- const day =
-   24 * 60 * 60 * 1000;
+    startApp();
 
- let today = 0;
- let week = 0;
- let month = 0;
- let all = 0;
+  }else{
 
- transactions.forEach(function(t){
+    $("authPage").classList.remove("hidden");
+    $("appPage").classList.add("hidden");
+  }
 
-   if (t.type !== "فروش") return;
-
-   const profit =
-     Number(t.profit || 0);
-
-   all += profit;
-
-   const time =
-     new Date(t.created_at || 0).getTime();
-
-   if (!time) return;
-
-   const diff =
-     now - time;
-
-   if (diff <= day) {
-     today += profit;
-   }
-
-   if (diff <= 7 * day) {
-     week += profit;
-   }
-
-   if (diff <= 30 * day) {
-     month += profit;
-   }
- });
-
- document.getElementById("todayProfit").textContent =
-   money(today);
-
- document.getElementById("weekProfit").textContent =
-   money(week);
-
- document.getElementById("monthProfit").textContent =
-   money(month);
-
- document.getElementById("allProfit").textContent =
-   money(all);
-}
-
-
-/* =========================
-   کم‌موجود
-========================= */
-
-function renderLowStock() {
-
- const box =
-   document.getElementById("lowStockList");
-
- if (!box) return;
-
- const low =
-   products.filter(function(p){
-     return Number(p.quantity || p.qty || 0) <= 3;
-   });
-
- if (!low.length) {
-
-   box.innerHTML =
-     '<span class="badge good">✅ هیچ جنس کم‌موجود نیست</span>';
-
-   return;
- }
-
- box.innerHTML =
-   low.map(function(p){
-
-     return (
-       '<div class="money-box">' +
-       "⚠️ <b>" +
-       escapeHtml(p.name || "") +
-       "</b> — موجودی: " +
-       Number(p.quantity || p.qty || 0) +
-       "</div>"
-     );
-
-   }).join("");
-}
-
-
-/* =========================
-   کارکنان
-========================= */
-
-async function loadWorkers() {
-
- try {
-
-   const data =
-     await api("/workers");
-
-   workers =
-     data.workers ||
-     data.data ||
-     [];
-
-   renderWorkers();
-
- } catch(error) {
-
-   console.log(error);
-   workers=[];
-   renderWorkers();
- }
-}
-
-
-function renderWorkers() {
-
- const tbody =
-   document.getElementById("workersTable");
-
- if (!tbody) return;
-
- tbody.innerHTML="";
-
- if (!workers.length) {
-
-   tbody.innerHTML =
-     '<tr><td colspan="3">کارمندی ثبت نشده است.</td></tr>';
-
-   return;
- }
-
- workers.forEach(function(w){
-
-   const tr =
-     document.createElement("tr");
-
-   tr.innerHTML =
-     "<td>" +
-       escapeHtml(w.username || "") +
-     "</td>" +
-     "<td>" +
-       escapeHtml(w.role || "worker") +
-     "</td>" +
-     "<td>" +
-       '<button class="btn-red" onclick="deleteWorker(' +
-       Number(w.id) +
-       ')">حذف</button>' +
-     "</td>";
-
-   tbody.appendChild(tr);
- });
-}
-
-
-async function addWorker() {
-
- const username =
-   document.getElementById("workerUsername")
-   .value.trim();
-
- const password =
-   document.getElementById("workerPassword")
-   .value;
-
- if (!username || !password) {
-
-   message(
-     "workerMsg",
-     "نام کاربری و رمز را وارد کن",
-     "error"
-   );
-
-   return;
- }
-
- try {
-
-   await api("/workers",{
-     method:"POST",
-     body:JSON.stringify({
-       username:username,
-       password:password
-     })
-   });
-
-   document.getElementById("workerUsername").value="";
-   document.getElementById("workerPassword").value="";
-
-   message(
-     "workerMsg",
-     "✅ کارمند اضافه شد",
-     "success"
-   );
-
-   await loadWorkers();
-
- } catch(error) {
-
-   message(
-     "workerMsg",
-     error.message,
-     "error"
-   );
- }
-}
-
-
-async function deleteWorker(id) {
-
- if (!confirm("این کارمند حذف شود؟")) return;
-
- try {
-
-   await api("/workers/" + id,{
-     method:"DELETE"
-   });
-
-   await loadWorkers();
-
- } catch(error) {
-
-   alert(error.message);
- }
-}
-
-
-/* =========================
-   دوکان
-========================= */
-
-async function loadShop() {
-
- try {
-
-   const data =
-     await api("/shop");
-
-   const shop =
-     data.shop ||
-     data.data ||
-     data;
-
-   if (!shop) return;
-
-   const name =
-     shop.name ||
-     shop.shop_name ||
-     "";
-
-   document.getElementById("shopTitle").textContent =
-     name || "دوکان";
-
-   document.getElementById("shopNameSetting").value =
-     name;
-
- } catch(error) {
-
-   console.log(error);
- }
-}
-
-
-async function saveShop() {
-
- const name =
-   document.getElementById("shopNameSetting")
-   .value.trim();
-
- if (!name) return;
-
- try {
-
-   await api("/shop",{
-     method:"PUT",
-     body:JSON.stringify({
-       name:name,
-       shop_name:name
-     })
-   });
-
-   document.getElementById("shopTitle").textContent =
-     name;
-
-   alert("✅ نام دوکان ذخیره شد");
-
- } catch(error) {
-
-   alert(error.message);
- }
-}
-
-
-/* =========================
-   پشتیبان ساده
-========================= */
-
-function downloadBackup() {
-
- const backup = {
-   app:"Dokanyaar",
-   date:new Date().toISOString(),
-   currency:getCurrencySettings(),
-   products:products,
-   transactions:transactions
- };
-
- const blob =
-   new Blob(
-     [JSON.stringify(backup,null,2)],
-     {type:"application/json"}
-   );
-
- const url =
-   URL.createObjectURL(blob);
-
- const a =
-   document.createElement("a");
-
- a.href=url;
- a.download="dokanyar-backup.json";
- a.click();
-
- URL.revokeObjectURL(url);
-}
-
-
-/* =========================
-   بارگذاری همه
-========================= */
-
-async function loadAll() {
-
- loadCurrencySettings();
-
- await loadProducts();
- await loadTransactions();
- await loadShop();
-
- loadDashboard();
-}
-
-
-/* =========================
-   امنیت نمایش متن
-========================= */
-
-function escapeHtml(value) {
-
- return String(value || "")
-   .replace(/&/g,"&amp;")
-   .replace(/</g,"&lt;")
-   .replace(/>/g,"&gt;")
-   .replace(/"/g,"&quot;")
-   .replace(/'/g,"&#039;");
-}
-
-
-/* =========================
-   شروع
-========================= */
-
-document.addEventListener(
- "DOMContentLoaded",
- function(){
-
-   loadCurrencySettings();
-
-   if (token) {
-     startApp();
-   } else {
-     showLogin();
-   }
- }
-);
+});
 
 </script>
 
