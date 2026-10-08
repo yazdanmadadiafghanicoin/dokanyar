@@ -79,7 +79,7 @@ async function getBody(req) {
     req.on("end", () => {
       try {
         resolve(raw ? JSON.parse(raw) : {});
-      } catch {
+      } catch (e) {
         resolve({});
       }
     });
@@ -87,13 +87,12 @@ async function getBody(req) {
 }
 
 /* =====================================================
-   DATABASE SETUP + MIGRATION
+   DATABASE
 ===================================================== */
 
 async function setupDatabase() {
   const db = getPool();
 
-  /* SHOP */
   await db.query(`
     CREATE TABLE IF NOT EXISTS shops (
       id SERIAL PRIMARY KEY,
@@ -103,7 +102,6 @@ async function setupDatabase() {
     )
   `);
 
-  /* USERS */
   await db.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -117,43 +115,34 @@ async function setupDatabase() {
     )
   `);
 
-  /* اضافه کردن ستون‌های قدیمی */
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS shop_id INTEGER
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_id INTEGER
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS username TEXT
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS password_hash TEXT
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS full_name TEXT DEFAULT ''
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT DEFAULT ''
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'worker'
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'worker'
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS token TEXT
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS token TEXT
   `);
 
   await db.query(`
-    ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
-  /* PRODUCTS */
   await db.query(`
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
@@ -170,51 +159,43 @@ async function setupDatabase() {
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS shop_id INTEGER
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS shop_id INTEGER
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS brand TEXT DEFAULT ''
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS brand TEXT DEFAULT ''
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS buy_price NUMERIC(18,2) DEFAULT 0
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS buy_price NUMERIC(18,2) DEFAULT 0
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS sell_price NUMERIC(18,2) DEFAULT 0
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS sell_price NUMERIC(18,2) DEFAULT 0
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 0
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 0
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
   await db.query(`
-    ALTER TABLE products
-    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
   /* TRANSACTIONS */
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS transactions (
       id SERIAL PRIMARY KEY,
@@ -223,10 +204,20 @@ async function setupDatabase() {
       user_id INTEGER,
       type TEXT,
       quantity INTEGER DEFAULT 0,
+
       unit_price NUMERIC(18,2) DEFAULT 0,
       total NUMERIC(18,2) DEFAULT 0,
+
       buy_cost NUMERIC(18,2) DEFAULT 0,
       profit NUMERIC(18,2) DEFAULT 0,
+
+      currency TEXT DEFAULT 'AFN',
+      currency_rate NUMERIC(18,4) DEFAULT 1,
+
+      base_unit_price NUMERIC(18,2) DEFAULT 0,
+      base_total NUMERIC(18,2) DEFAULT 0,
+      base_buy_cost NUMERIC(18,2) DEFAULT 0,
+
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
@@ -278,10 +269,65 @@ async function setupDatabase() {
 
   await db.query(`
     ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'AFN'
+  `);
+
+  await db.query(`
+    ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS currency_rate NUMERIC(18,4) DEFAULT 1
+  `);
+
+  await db.query(`
+    ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS base_unit_price NUMERIC(18,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS base_total NUMERIC(18,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS base_buy_cost NUMERIC(18,2) DEFAULT 0
+  `);
+
+  await db.query(`
+    ALTER TABLE transactions
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
-  /* INDEX */
+  /* اطلاعات قدیمی را AFN در نظر می‌گیریم */
+  await db.query(`
+    UPDATE transactions
+    SET currency = 'AFN'
+    WHERE currency IS NULL OR currency = ''
+  `);
+
+  await db.query(`
+    UPDATE transactions
+    SET currency_rate = 1
+    WHERE currency_rate IS NULL OR currency_rate <= 0
+  `);
+
+  await db.query(`
+    UPDATE transactions
+    SET base_unit_price = unit_price
+    WHERE base_unit_price IS NULL OR base_unit_price = 0
+  `);
+
+  await db.query(`
+    UPDATE transactions
+    SET base_total = total
+    WHERE base_total IS NULL OR base_total = 0
+  `);
+
+  await db.query(`
+    UPDATE transactions
+    SET base_buy_cost = buy_cost
+    WHERE base_buy_cost IS NULL OR base_buy_cost = 0
+  `);
+
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_users_token
     ON users(token)
@@ -343,6 +389,34 @@ function needLogin(user, res) {
 }
 
 /* =====================================================
+   CURRENCY
+===================================================== */
+
+function getTransactionCurrency(data) {
+  const c = String(data.currency || "AFN").toUpperCase();
+
+  if (c !== "AFN" && c !== "USD") {
+    throw new Error("ارز باید AFN یا USD باشد.");
+  }
+
+  return c;
+}
+
+function getTransactionRate(data, currency) {
+  if (currency === "AFN") return 1;
+
+  const rate = Number(data.currency_rate);
+
+  if (!rate || rate <= 0) {
+    throw new Error(
+      "برای معامله دالری نرخ تبدیل را وارد کنید. مثال: 1 USD = 70 AFN"
+    );
+  }
+
+  return rate;
+}
+
+/* =====================================================
    HANDLER
 ===================================================== */
 
@@ -382,7 +456,8 @@ module.exports = async (req, res) => {
         success: true,
         app: "Dokanyaar",
         message: "دوکان‌یار API فعال است.",
-        database: true
+        database: true,
+        currency_receipts: true
       });
     }
 
@@ -395,7 +470,8 @@ module.exports = async (req, res) => {
       return send(res, 200, {
         success: true,
         message: "Database migration completed.",
-        database: true
+        database: true,
+        currency_receipts: true
       });
     }
 
@@ -706,7 +782,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    /* BUY */
+    /* =====================================================
+       BUY
+    ===================================================== */
 
     if (method === "POST" && path === "/buy") {
       const user = await auth(req);
@@ -729,6 +807,36 @@ module.exports = async (req, res) => {
           error: "اطلاعات خرید نادرست است."
         });
       }
+
+      let currency;
+      let rate;
+
+      try {
+        currency = getTransactionCurrency(data);
+        rate = getTransactionRate(data, currency);
+      } catch (e) {
+        return send(res, 400, {
+          success: false,
+          error: e.message
+        });
+      }
+
+      /*
+        قیمت داخلی همیشه AFN است.
+        اگر خرید USD باشد:
+        USD × نرخ = AFN
+      */
+
+      const baseUnitPrice =
+        currency === "USD"
+          ? unitPrice * rate
+          : unitPrice;
+
+      const total =
+        quantity * unitPrice;
+
+      const baseTotal =
+        quantity * baseUnitPrice;
 
       const db = getPool();
       const client = await db.connect();
@@ -760,13 +868,17 @@ module.exports = async (req, res) => {
 
         const newQty = oldQty + quantity;
 
+        /*
+          میانگین خرید همیشه به AFN محاسبه می‌شود.
+        */
+
         const average =
           newQty > 0
             ? (
                 oldQty * oldBuy +
-                quantity * unitPrice
+                quantity * baseUnitPrice
               ) / newQty
-            : unitPrice;
+            : baseUnitPrice;
 
         await client.query(`
           UPDATE products
@@ -781,8 +893,6 @@ module.exports = async (req, res) => {
           productId
         ]);
 
-        const total = quantity * unitPrice;
-
         await client.query(`
           INSERT INTO transactions(
             shop_id,
@@ -793,10 +903,16 @@ module.exports = async (req, res) => {
             unit_price,
             total,
             buy_cost,
-            profit
+            profit,
+            currency,
+            currency_rate,
+            base_unit_price,
+            base_total,
+            base_buy_cost
           )
           VALUES(
-            $1,$2,$3,'buy',$4,$5,$6,$6,0
+            $1,$2,$3,'buy',$4,$5,$6,$7,0,
+            $8,$9,$10,$11,$11
           )
         `, [
           user.shop_id,
@@ -804,7 +920,12 @@ module.exports = async (req, res) => {
           user.id,
           quantity,
           unitPrice,
-          total
+          total,
+          baseTotal,
+          currency,
+          rate,
+          baseUnitPrice,
+          baseTotal
         ]);
 
         await client.query("COMMIT");
@@ -813,7 +934,18 @@ module.exports = async (req, res) => {
           success: true,
           message: "خرید ثبت شد.",
           quantity: newQty,
-          average_buy_price: average
+          average_buy_price: average,
+          currency,
+          currency_rate: rate,
+          receipt: {
+            type: "خرید",
+            quantity,
+            unit_price: unitPrice,
+            total,
+            currency,
+            currency_rate: rate,
+            base_total: baseTotal
+          }
         });
 
       } catch (e) {
@@ -824,7 +956,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    /* SELL */
+    /* =====================================================
+       SELL
+    ===================================================== */
 
     if (method === "POST" && path === "/sell") {
       const user = await auth(req);
@@ -847,6 +981,30 @@ module.exports = async (req, res) => {
           error: "اطلاعات فروش نادرست است."
         });
       }
+
+      let currency;
+      let rate;
+
+      try {
+        currency = getTransactionCurrency(data);
+        rate = getTransactionRate(data, currency);
+      } catch (e) {
+        return send(res, 400, {
+          success: false,
+          error: e.message
+        });
+      }
+
+      const baseUnitPrice =
+        currency === "USD"
+          ? unitPrice * rate
+          : unitPrice;
+
+      const total =
+        quantity * unitPrice;
+
+      const baseTotal =
+        quantity * baseUnitPrice;
 
       const db = getPool();
       const client = await db.connect();
@@ -885,10 +1043,19 @@ module.exports = async (req, res) => {
           });
         }
 
-        const total = quantity * unitPrice;
-        const buyCost = quantity * buyPrice;
-        const profit = total - buyCost;
-        const newStock = stock - quantity;
+        /*
+          قیمت خرید محصول AFN است.
+          قیمت فروش هم برای سود به AFN تبدیل می‌شود.
+        */
+
+        const buyCost =
+          quantity * buyPrice;
+
+        const profit =
+          baseTotal - buyCost;
+
+        const newStock =
+          stock - quantity;
 
         await client.query(`
           UPDATE products
@@ -911,10 +1078,16 @@ module.exports = async (req, res) => {
             unit_price,
             total,
             buy_cost,
-            profit
+            profit,
+            currency,
+            currency_rate,
+            base_unit_price,
+            base_total,
+            base_buy_cost
           )
           VALUES(
-            $1,$2,$3,'sell',$4,$5,$6,$7,$8
+            $1,$2,$3,'sell',$4,$5,$6,$7,$8,
+            $9,$10,$11,$12,$13
           )
         `, [
           user.shop_id,
@@ -924,7 +1097,12 @@ module.exports = async (req, res) => {
           unitPrice,
           total,
           buyCost,
-          profit
+          profit,
+          currency,
+          rate,
+          baseUnitPrice,
+          baseTotal,
+          buyCost
         ]);
 
         await client.query("COMMIT");
@@ -933,7 +1111,21 @@ module.exports = async (req, res) => {
           success: true,
           message: "فروش ثبت شد.",
           quantity: newStock,
-          profit
+          profit,
+          profit_currency: "AFN",
+          currency,
+          currency_rate: rate,
+          receipt: {
+            type: "فروش",
+            quantity,
+            unit_price: unitPrice,
+            total,
+            currency,
+            currency_rate: rate,
+            profit_afn: profit,
+            base_total: baseTotal,
+            buy_cost_afn: buyCost
+          }
         });
 
       } catch (e) {
@@ -944,7 +1136,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    /* TRANSACTIONS */
+    /* =====================================================
+       TRANSACTIONS
+    ===================================================== */
 
     if (method === "GET" && path === "/transactions") {
       const user = await auth(req);
@@ -974,7 +1168,62 @@ module.exports = async (req, res) => {
       });
     }
 
-    /* WORKERS */
+    /* =====================================================
+       ONE TRANSACTION / RECEIPT
+    ===================================================== */
+
+    const transactionMatch =
+      path.match(/^\/transactions\/(\d+)$/);
+
+    if (
+      transactionMatch &&
+      method === "GET"
+    ) {
+      const user = await auth(req);
+
+      if (!needLogin(user, res)) return;
+
+      const db = getPool();
+
+      const result = await db.query(`
+        SELECT
+          t.*,
+          p.name AS product_name,
+          p.brand,
+          p.model,
+          u.username,
+          s.name AS shop_name
+        FROM transactions t
+        LEFT JOIN products p
+          ON p.id = t.product_id
+        LEFT JOIN users u
+          ON u.id = t.user_id
+        LEFT JOIN shops s
+          ON s.id = t.shop_id
+        WHERE t.id = $1
+          AND t.shop_id = $2
+        LIMIT 1
+      `, [
+        Number(transactionMatch[1]),
+        user.shop_id
+      ]);
+
+      if (!result.rows.length) {
+        return send(res, 404, {
+          success: false,
+          error: "رسید پیدا نشد."
+        });
+      }
+
+      return send(res, 200, {
+        success: true,
+        transaction: result.rows[0]
+      });
+    }
+
+    /* =====================================================
+       WORKERS
+    ===================================================== */
 
     if (path === "/workers") {
       const user = await auth(req);
@@ -1012,9 +1261,14 @@ module.exports = async (req, res) => {
 
         const data = await getBody(req);
 
-        const username = String(data.username || "").trim();
-        const password = String(data.password || "");
-        const fullName = String(data.full_name || "").trim();
+        const username =
+          String(data.username || "").trim();
+
+        const password =
+          String(data.password || "");
+
+        const fullName =
+          String(data.full_name || "").trim();
 
         if (!username || password.length < 4) {
           return send(res, 400, {
@@ -1066,7 +1320,8 @@ module.exports = async (req, res) => {
 
     /* DELETE WORKER */
 
-    const workerMatch = path.match(/^\/workers\/(\d+)$/);
+    const workerMatch =
+      path.match(/^\/workers\/(\d+)$/);
 
     if (
       workerMatch &&
@@ -1101,7 +1356,68 @@ module.exports = async (req, res) => {
       });
     }
 
-    /* DASHBOARD */
+    /* =====================================================
+       SHOP
+    ===================================================== */
+
+    if (path === "/shop") {
+      const user = await auth(req);
+
+      if (!needLogin(user, res)) return;
+
+      const db = getPool();
+
+      if (method === "GET") {
+        const result = await db.query(`
+          SELECT *
+          FROM shops
+          WHERE id = $1
+          LIMIT 1
+        `, [user.shop_id]);
+
+        return send(res, 200, {
+          success: true,
+          shop: result.rows[0] || null
+        });
+      }
+
+      if (method === "PUT") {
+        const data = await getBody(req);
+
+        const name =
+          String(
+            data.name ||
+            data.shop_name ||
+            ""
+          ).trim();
+
+        if (!name) {
+          return send(res, 400, {
+            success: false,
+            error: "نام دوکان لازم است."
+          });
+        }
+
+        const result = await db.query(`
+          UPDATE shops
+          SET name = $1
+          WHERE id = $2
+          RETURNING *
+        `, [
+          name,
+          user.shop_id
+        ]);
+
+        return send(res, 200, {
+          success: true,
+          shop: result.rows[0]
+        });
+      }
+    }
+
+    /* =====================================================
+       DASHBOARD
+    ===================================================== */
 
     if (
       method === "GET" &&
@@ -1113,7 +1429,7 @@ module.exports = async (req, res) => {
 
       const db = getPool();
 
-      const products = await db.query(`
+      const productsResult = await db.query(`
         SELECT
           COUNT(*)::int AS product_count,
           COALESCE(SUM(quantity),0)::int AS total_quantity,
@@ -1129,10 +1445,15 @@ module.exports = async (req, res) => {
         WHERE shop_id = $1
       `, [user.shop_id]);
 
+      /*
+        گزارش‌های مالی اصلی به AFN هستند.
+        چون معاملات USD و AFN قابل ترکیب مستقیم نیستند.
+      */
+
       const sales = await db.query(`
         SELECT
-          COALESCE(SUM(total),0)::numeric AS sales_total,
-          COALESCE(SUM(profit),0)::numeric AS profit_total,
+          COALESCE(SUM(base_total),0)::numeric AS sales_total_afn,
+          COALESCE(SUM(profit),0)::numeric AS profit_total_afn,
           COUNT(*)::int AS sales_count
         FROM transactions
         WHERE shop_id = $1
@@ -1141,7 +1462,7 @@ module.exports = async (req, res) => {
 
       const purchases = await db.query(`
         SELECT
-          COALESCE(SUM(total),0)::numeric AS purchases_total,
+          COALESCE(SUM(base_total),0)::numeric AS purchases_total_afn,
           COUNT(*)::int AS purchases_count
         FROM transactions
         WHERE shop_id = $1
@@ -1158,10 +1479,11 @@ module.exports = async (req, res) => {
       return send(res, 200, {
         success: true,
         dashboard: {
-          products: products.rows[0],
+          products: productsResult.rows[0],
           sales: sales.rows[0],
           purchases: purchases.rows[0],
-          low_stock: low.rows[0]
+          low_stock: low.rows[0],
+          accounting_currency: "AFN"
         }
       });
     }
