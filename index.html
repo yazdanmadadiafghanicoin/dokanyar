@@ -8,24 +8,60 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
   margin:0;
   font-family:Arial,Tahoma,sans-serif;
   background:#f3f4f6;
   color:#111827;
 }
+
 button,input,select{
   font:inherit;
 }
+
 button{
   cursor:pointer;
+  border:0;
+  border-radius:10px;
+  padding:12px 16px;
+  background:#111827;
+  color:white;
 }
+
+button.secondary{
+  background:#e5e7eb;
+  color:#111827;
+}
+
+button.danger{
+  background:#dc2626;
+}
+
+button.success{
+  background:#16a34a;
+}
+
+button.pro{
+  background:#f59e0b;
+  color:#111827;
+  font-weight:bold;
+}
+
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
 .container{
   max-width:1100px;
   margin:auto;
   padding:16px;
 }
-.hidden{display:none!important}
+
+.hidden{
+  display:none!important;
+}
 
 .card{
   background:#fff;
@@ -70,27 +106,6 @@ label{
   display:block;
   font-size:14px;
   font-weight:bold;
-}
-
-button{
-  border:0;
-  border-radius:10px;
-  padding:12px 16px;
-  background:#111827;
-  color:white;
-}
-
-button.secondary{
-  background:#e5e7eb;
-  color:#111827;
-}
-
-button.danger{
-  background:#dc2626;
-}
-
-button.success{
-  background:#16a34a;
 }
 
 .tabs{
@@ -176,6 +191,17 @@ th{
   color:#991b1b;
 }
 
+.badge.free{
+  background:#e5e7eb;
+  color:#374151;
+}
+
+.badge.pro{
+  background:#fef3c7;
+  color:#92400e;
+  font-weight:bold;
+}
+
 .message{
   padding:11px;
   border-radius:10px;
@@ -193,6 +219,12 @@ th{
   display:block;
   background:#fee2e2;
   color:#991b1b;
+}
+
+.message.warning{
+  display:block;
+  background:#fef3c7;
+  color:#92400e;
 }
 
 .auth{
@@ -225,7 +257,101 @@ th{
   margin-bottom:12px;
 }
 
+.subscription{
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:15px;
+  border:1px solid #e5e7eb;
+}
+
+.subscription.free{
+  background:#f9fafb;
+}
+
+.subscription.pro{
+  background:#fffbeb;
+  border-color:#f59e0b;
+}
+
+.subscription-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.subscription-title{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.subscription-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.subscription-item{
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  border:1px solid #eee;
+}
+
+.subscription-item-title{
+  color:#6b7280;
+  font-size:12px;
+}
+
+.subscription-item-value{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:5px;
+}
+
+.progress{
+  height:10px;
+  background:#e5e7eb;
+  border-radius:20px;
+  overflow:hidden;
+  margin:12px 0;
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#2563eb;
+  transition:.3s;
+}
+
+.upgrade-box{
+  background:#111827;
+  color:white;
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:14px;
+}
+
+.upgrade-box h3{
+  margin-bottom:7px;
+}
+
+.upgrade-box .muted{
+  color:#d1d5db;
+}
+
+.small{
+  font-size:12px;
+}
+
+.price{
+  font-size:25px;
+  font-weight:bold;
+}
+
 @media(max-width:800px){
+
   .grid{
     grid-template-columns:repeat(2,1fr);
   }
@@ -233,9 +359,14 @@ th{
   .form-grid{
     grid-template-columns:1fr;
   }
+
+  .subscription-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 @media(max-width:500px){
+
   .container{
     padding:10px;
   }
@@ -255,6 +386,10 @@ th{
 
   button{
     padding:11px 12px;
+  }
+
+  .topbar{
+    align-items:flex-start;
   }
 }
 </style>
@@ -277,13 +412,20 @@ th{
     <div class="card">
 
       <div class="tabs">
-        <button id="loginTab" class="active" onclick="showAuth('login')">
+
+        <button
+          id="loginTab"
+          class="active"
+          onclick="showAuth('login')">
           ورود
         </button>
 
-        <button id="registerTab" onclick="showAuth('register')">
+        <button
+          id="registerTab"
+          onclick="showAuth('register')">
           ثبت‌نام
         </button>
+
       </div>
 
       <div id="authMessage" class="message"></div>
@@ -297,7 +439,9 @@ th{
         <label>رمز عبور</label>
         <input id="loginPassword" type="password">
 
-        <button style="width:100%" onclick="login()">
+        <button
+          style="width:100%"
+          onclick="login()">
           ورود به دوکان
         </button>
 
@@ -318,7 +462,9 @@ th{
         <label>رمز عبور</label>
         <input id="registerPassword" type="password">
 
-        <button style="width:100%" onclick="register()">
+        <button
+          style="width:100%"
+          onclick="register()">
           ثبت‌نام
         </button>
 
@@ -334,14 +480,16 @@ th{
         </div>
 
         <label>کد تأیید</label>
+
         <input
           id="verifyCode"
           maxlength="6"
           inputmode="numeric"
-          placeholder="123456"
-        >
+          placeholder="123456">
 
-        <button style="width:100%" onclick="verifyEmail()">
+        <button
+          style="width:100%"
+          onclick="verifyEmail()">
           تأیید ایمیل
         </button>
 
@@ -350,8 +498,7 @@ th{
         <button
           class="secondary"
           style="width:100%"
-          onclick="resendCode()"
-        >
+          onclick="resendCode()">
           ارسال دوباره کد
         </button>
 
@@ -367,49 +514,171 @@ th{
 <div id="appPage" class="hidden">
 
   <div class="brand">
+
     <div class="topbar">
+
       <div>
         <h1>دوکان‌یار</h1>
-        <div id="welcome" class="muted" style="color:#d1d5db">
+
+        <div
+          id="welcome"
+          class="muted"
+          style="color:#d1d5db">
           مدیریت دوکان
         </div>
       </div>
 
-      <button class="secondary" onclick="logout()">
+      <button
+        class="secondary"
+        onclick="logout()">
         خروج
       </button>
+
     </div>
+
+  </div>
+
+
+  <!-- SUBSCRIPTION -->
+  <div
+    id="subscriptionBox"
+    class="subscription free">
+
+    <div class="subscription-head">
+
+      <div>
+
+        <div
+          id="subscriptionTitle"
+          class="subscription-title">
+          🆓 نسخه رایگان
+        </div>
+
+        <div
+          id="subscriptionText"
+          class="muted">
+          در حال دریافت وضعیت اشتراک...
+        </div>
+
+      </div>
+
+      <span
+        id="subscriptionBadge"
+        class="badge free">
+        FREE
+      </span>
+
+    </div>
+
+
+    <div class="subscription-grid">
+
+      <div class="subscription-item">
+
+        <div class="subscription-item-title">
+          کالاهای استفاده‌شده
+        </div>
+
+        <div
+          id="subProductCount"
+          class="subscription-item-value">
+          0
+        </div>
+
+      </div>
+
+
+      <div class="subscription-item">
+
+        <div class="subscription-item-title">
+          سقف کالا
+        </div>
+
+        <div
+          id="subProductLimit"
+          class="subscription-item-value">
+          50
+        </div>
+
+      </div>
+
+
+      <div class="subscription-item">
+
+        <div class="subscription-item-title">
+          روز باقی‌مانده
+        </div>
+
+        <div
+          id="subDays"
+          class="subscription-item-value">
+          —
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="progress">
+      <div
+        id="subscriptionProgress"
+        class="progress-bar">
+      </div>
+    </div>
+
+
+    <div
+      id="subscriptionActions"
+      style="margin-top:10px">
+    </div>
+
   </div>
 
 
   <!-- NAVIGATION -->
   <div class="tabs">
 
-    <button id="tabDashboard" class="active" onclick="showPage('dashboard')">
+    <button
+      id="tabDashboard"
+      class="active"
+      onclick="showPage('dashboard')">
       📊 داشبورد
     </button>
 
-    <button id="tabProducts" onclick="showPage('products')">
+    <button
+      id="tabProducts"
+      onclick="showPage('products')">
       📦 کالاها
     </button>
 
-    <button id="tabBuy" onclick="showPage('buy')">
+    <button
+      id="tabBuy"
+      onclick="showPage('buy')">
       🛒 خرید
     </button>
 
-    <button id="tabSell" onclick="showPage('sell')">
+    <button
+      id="tabSell"
+      onclick="showPage('sell')">
       💰 فروش
     </button>
 
-    <button id="tabHistory" onclick="showPage('history')">
+    <button
+      id="tabHistory"
+      onclick="showPage('history')">
       📋 تاریخچه
     </button>
 
-    <button id="tabWorkers" onclick="showPage('workers')">
+    <button
+      id="tabWorkers"
+      onclick="showPage('workers')">
       👥 کارکنان
     </button>
 
-    <button id="tabShop" onclick="showPage('shop')">
+    <button
+      id="tabShop"
+      onclick="showPage('shop')">
       ⚙️ دوکان
     </button>
 
@@ -419,7 +688,10 @@ th{
   <!-- DASHBOARD -->
   <section id="pageDashboard">
 
-    <div id="dashboardMessage" class="message"></div>
+    <div
+      id="dashboardMessage"
+      class="message">
+    </div>
 
     <div class="grid">
 
@@ -495,8 +767,10 @@ th{
     <div class="card">
 
       <div class="topbar">
+
         <div>
           <h3>وضعیت سیستم</h3>
+
           <div class="muted">
             اطلاعات مستقیماً از دیتابیس خوانده می‌شود.
           </div>
@@ -505,6 +779,7 @@ th{
         <button onclick="loadDashboard()">
           🔄 بروزرسانی
         </button>
+
       </div>
 
       <div id="dashboardStatus">
@@ -519,11 +794,19 @@ th{
   <!-- PRODUCTS -->
   <section id="pageProducts" class="hidden">
 
+    <div
+      id="productLimitMessage"
+      class="message">
+    </div>
+
     <div class="card">
 
       <h2>📦 افزودن کالا</h2>
 
-      <div id="productMessage" class="message"></div>
+      <div
+        id="productMessage"
+        class="message">
+      </div>
 
       <div class="form-grid">
 
@@ -544,22 +827,30 @@ th{
 
         <div>
           <label>قیمت خرید</label>
-          <input id="productBuy" type="number">
+          <input
+            id="productBuy"
+            type="number">
         </div>
 
         <div>
           <label>قیمت فروش</label>
-          <input id="productSell" type="number">
+          <input
+            id="productSell"
+            type="number">
         </div>
 
         <div>
           <label>موجودی اولیه</label>
-          <input id="productQty" type="number">
+          <input
+            id="productQty"
+            type="number">
         </div>
 
       </div>
 
-      <button onclick="addProduct()">
+      <button
+        id="addProductButton"
+        onclick="addProduct()">
         افزودن کالا
       </button>
 
@@ -574,8 +865,7 @@ th{
         id="productSearch"
         class="search"
         placeholder="نام، برند یا مدل..."
-        oninput="filterProducts()"
-      >
+        oninput="filterProducts()">
 
       <div id="productsList">
         در حال دریافت کالاها...
@@ -593,29 +883,53 @@ th{
 
       <h2>🛒 ثبت خرید</h2>
 
-      <div id="buyMessage" class="message"></div>
+      <div
+        id="buyMessage"
+        class="message">
+      </div>
 
       <label>محصول</label>
       <select id="buyProduct"></select>
 
       <label>تعداد</label>
-      <input id="buyQty" type="number" min="1">
+      <input
+        id="buyQty"
+        type="number"
+        min="1">
 
       <label>واحد پول</label>
-      <select id="buyCurrency" onchange="currencyChanged('buy')">
+
+      <select
+        id="buyCurrency"
+        onchange="currencyChanged('buy')">
+
         <option value="AFN">AFN</option>
         <option value="USD">USD</option>
+
       </select>
 
       <label>قیمت خرید هر عدد</label>
-      <input id="buyPrice" type="number">
 
-      <div id="buyRateBox" class="hidden">
+      <input
+        id="buyPrice"
+        type="number">
+
+      <div
+        id="buyRateBox"
+        class="hidden">
+
         <label>نرخ USD به AFN</label>
-        <input id="buyRate" type="number" placeholder="مثلاً 70">
+
+        <input
+          id="buyRate"
+          type="number"
+          placeholder="مثلاً 70">
+
       </div>
 
-      <button class="success" onclick="buyProduct()">
+      <button
+        class="success"
+        onclick="buyProduct()">
         ثبت خرید
       </button>
 
@@ -631,29 +945,53 @@ th{
 
       <h2>💰 ثبت فروش</h2>
 
-      <div id="sellMessage" class="message"></div>
+      <div
+        id="sellMessage"
+        class="message">
+      </div>
 
       <label>محصول</label>
       <select id="sellProduct"></select>
 
       <label>تعداد</label>
-      <input id="sellQty" type="number" min="1">
+      <input
+        id="sellQty"
+        type="number"
+        min="1">
 
       <label>واحد پول</label>
-      <select id="sellCurrency" onchange="currencyChanged('sell')">
+
+      <select
+        id="sellCurrency"
+        onchange="currencyChanged('sell')">
+
         <option value="AFN">AFN</option>
         <option value="USD">USD</option>
+
       </select>
 
       <label>قیمت فروش هر عدد</label>
-      <input id="sellPrice" type="number">
 
-      <div id="sellRateBox" class="hidden">
+      <input
+        id="sellPrice"
+        type="number">
+
+      <div
+        id="sellRateBox"
+        class="hidden">
+
         <label>نرخ USD به AFN</label>
-        <input id="sellRate" type="number" placeholder="مثلاً 70">
+
+        <input
+          id="sellRate"
+          type="number"
+          placeholder="مثلاً 70">
+
       </div>
 
-      <button class="success" onclick="sellProduct()">
+      <button
+        class="success"
+        onclick="sellProduct()">
         ثبت فروش
       </button>
 
@@ -668,16 +1006,21 @@ th{
     <div class="card">
 
       <div class="topbar">
+
         <div>
+
           <h2>📋 تاریخچه</h2>
+
           <div class="muted">
             تمام خریدها و فروش‌های ثبت‌شده
           </div>
+
         </div>
 
         <button onclick="loadHistory()">
           🔄
         </button>
+
       </div>
 
       <div class="table-wrap">
@@ -685,6 +1028,7 @@ th{
         <table>
 
           <thead>
+
             <tr>
               <th>نوع</th>
               <th>کالا</th>
@@ -695,6 +1039,7 @@ th{
               <th>سود</th>
               <th>تاریخ</th>
             </tr>
+
           </thead>
 
           <tbody id="historyTable"></tbody>
@@ -715,7 +1060,10 @@ th{
 
       <h2>👥 کارکنان</h2>
 
-      <div id="workerMessage" class="message"></div>
+      <div
+        id="workerMessage"
+        class="message">
+      </div>
 
       <div class="form-grid">
 
@@ -731,12 +1079,16 @@ th{
 
         <div>
           <label>ایمیل</label>
-          <input id="workerEmail" type="email">
+          <input
+            id="workerEmail"
+            type="email">
         </div>
 
         <div>
           <label>رمز عبور</label>
-          <input id="workerPassword" type="password">
+          <input
+            id="workerPassword"
+            type="password">
         </div>
 
       </div>
@@ -748,9 +1100,11 @@ th{
     </div>
 
     <div class="card">
+
       <div id="workersList">
         در حال دریافت...
       </div>
+
     </div>
 
   </section>
@@ -763,7 +1117,10 @@ th{
 
       <h2>⚙️ تنظیمات دوکان</h2>
 
-      <div id="shopMessage" class="message"></div>
+      <div
+        id="shopMessage"
+        class="message">
+      </div>
 
       <label>نام دوکان</label>
       <input id="shopEditName">
@@ -788,57 +1145,102 @@ th{
 
 
 <script>
-var API = "https://dokanyar-six.vercel.app/api";
 
-var tokenValue = localStorage.getItem("dokanyar_token") || "";
+var API =
+  "https://dokanyar-six.vercel.app/api";
+
+var tokenValue =
+  localStorage.getItem("dokanyar_token") || "";
+
 var productsData = [];
+
+var subscriptionData = {
+  plan:"free",
+  status:"active",
+  product_limit:50,
+  products_count:0,
+  days_remaining:0,
+  is_pro:false
+};
 
 
 /* =========================
    API
 ========================= */
 
-async function api(path, options) {
+async function api(path, options){
 
   options = options || {};
 
-  options.headers = options.headers || {};
+  options.headers =
+    options.headers || {};
 
-  options.headers["Content-Type"] = "application/json";
+  options.headers["Content-Type"] =
+    "application/json";
 
-  if (tokenValue) {
+  if(tokenValue){
+
     options.headers["Authorization"] =
       "Bearer " + tokenValue;
+
   }
 
-  try {
+  var response;
 
-    var response = await fetch(API + path, options);
+  try{
 
-    var text = await response.text();
+    response =
+      await fetch(API + path, options);
 
-    var data;
+  }catch(error){
 
-    try {
-      data = JSON.parse(text);
-    } catch(e) {
-      throw new Error("پاسخ سرور نامعتبر است.");
-    }
+    throw new Error(
+      "ارتباط با سرور برقرار نشد."
+    );
 
-    if (!response.ok || data.success === false) {
-      throw new Error(
+  }
+
+  var text =
+    await response.text();
+
+  var data;
+
+  try{
+
+    data =
+      JSON.parse(text);
+
+  }catch(e){
+
+    throw new Error(
+      "پاسخ سرور نامعتبر است."
+    );
+
+  }
+
+  if(
+    !response.ok ||
+    data.success === false
+  ){
+
+    var error =
+      new Error(
         data.error ||
         data.message ||
         "خطا در ارتباط با سرور"
       );
-    }
 
-    return data;
+    error.code =
+      data.code || "";
 
-  } catch(error) {
+    error.data =
+      data;
 
     throw error;
+
   }
+
+  return data;
 }
 
 
@@ -846,36 +1248,61 @@ async function api(path, options) {
    MESSAGE
 ========================= */
 
-function message(id, text, ok) {
+function message(id,text,ok){
 
-  var el = document.getElementById(id);
+  var el =
+    document.getElementById(id);
 
-  if (!el) return;
+  if(!el) return;
 
   el.className =
-    "message " + (ok ? "ok" : "error");
+    "message " +
+    (ok ? "ok" : "error");
 
-  el.textContent = text;
+  el.textContent =
+    text;
+
 }
 
 
 /* =========================
-   AUTH TABS
+   AUTH
 ========================= */
 
-function showAuth(type) {
+function showAuth(type){
 
-  document.getElementById("loginBox")
-    .classList.toggle("hidden", type !== "login");
+  document
+    .getElementById("loginBox")
+    .classList
+    .toggle(
+      "hidden",
+      type !== "login"
+    );
 
-  document.getElementById("registerBox")
-    .classList.toggle("hidden", type !== "register");
+  document
+    .getElementById("registerBox")
+    .classList
+    .toggle(
+      "hidden",
+      type !== "register"
+    );
 
-  document.getElementById("loginTab")
-    .classList.toggle("active", type === "login");
+  document
+    .getElementById("loginTab")
+    .classList
+    .toggle(
+      "active",
+      type === "login"
+    );
 
-  document.getElementById("registerTab")
-    .classList.toggle("active", type === "register");
+  document
+    .getElementById("registerTab")
+    .classList
+    .toggle(
+      "active",
+      type === "register"
+    );
+
 }
 
 
@@ -883,39 +1310,63 @@ function showAuth(type) {
    REGISTER
 ========================= */
 
-async function register() {
+async function register(){
 
   var shop_name =
-    document.getElementById("shopName").value.trim();
+    document
+      .getElementById("shopName")
+      .value
+      .trim();
 
   var name =
-    document.getElementById("ownerName").value.trim();
+    document
+      .getElementById("ownerName")
+      .value
+      .trim();
 
   var email =
-    document.getElementById("registerEmail").value.trim();
+    document
+      .getElementById("registerEmail")
+      .value
+      .trim();
 
   var password =
-    document.getElementById("registerPassword").value;
+    document
+      .getElementById("registerPassword")
+      .value;
 
-  if (!shop_name || !name || !email || !password) {
+  if(
+    !shop_name ||
+    !name ||
+    !email ||
+    !password
+  ){
+
     message(
       "authMessage",
       "همه معلومات را وارد کنید.",
       false
     );
+
     return;
+
   }
 
-  try {
+  try{
 
-    var data = await api("/register", {
+    await api("/register",{
+
       method:"POST",
+
       body:JSON.stringify({
+
         shop_name:shop_name,
         name:name,
         email:email,
         password:password
+
       })
+
     });
 
     message(
@@ -924,17 +1375,21 @@ async function register() {
       true
     );
 
-    document.getElementById("verifyBox")
-      .classList.remove("hidden");
+    document
+      .getElementById("verifyBox")
+      .classList
+      .remove("hidden");
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "authMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -942,15 +1397,21 @@ async function register() {
    VERIFY
 ========================= */
 
-async function verifyEmail() {
+async function verifyEmail(){
 
   var email =
-    document.getElementById("registerEmail").value.trim();
+    document
+      .getElementById("registerEmail")
+      .value
+      .trim();
 
   var code =
-    document.getElementById("verifyCode").value.trim();
+    document
+      .getElementById("verifyCode")
+      .value
+      .trim();
 
-  if (code.length !== 6) {
+  if(code.length !== 6){
 
     message(
       "authMessage",
@@ -959,16 +1420,20 @@ async function verifyEmail() {
     );
 
     return;
+
   }
 
-  try {
+  try{
 
-    await api("/verify-email", {
+    await api("/verify-email",{
+
       method:"POST",
+
       body:JSON.stringify({
         email:email,
         code:code
       })
+
     });
 
     message(
@@ -977,22 +1442,27 @@ async function verifyEmail() {
       true
     );
 
-    document.getElementById("verifyBox")
-      .classList.add("hidden");
+    document
+      .getElementById("verifyBox")
+      .classList
+      .add("hidden");
 
     showAuth("login");
 
-    document.getElementById("loginEmail").value =
-      email;
+    document
+      .getElementById("loginEmail")
+      .value = email;
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "authMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1000,12 +1470,15 @@ async function verifyEmail() {
    RESEND
 ========================= */
 
-async function resendCode() {
+async function resendCode(){
 
   var email =
-    document.getElementById("registerEmail").value.trim();
+    document
+      .getElementById("registerEmail")
+      .value
+      .trim();
 
-  if (!email) {
+  if(!email){
 
     message(
       "authMessage",
@@ -1014,15 +1487,19 @@ async function resendCode() {
     );
 
     return;
+
   }
 
-  try {
+  try{
 
-    await api("/resend-code", {
+    await api("/resend-code",{
+
       method:"POST",
+
       body:JSON.stringify({
         email:email
       })
+
     });
 
     message(
@@ -1031,14 +1508,16 @@ async function resendCode() {
       true
     );
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "authMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1046,15 +1525,20 @@ async function resendCode() {
    LOGIN
 ========================= */
 
-async function login() {
+async function login(){
 
   var email =
-    document.getElementById("loginEmail").value.trim();
+    document
+      .getElementById("loginEmail")
+      .value
+      .trim();
 
   var password =
-    document.getElementById("loginPassword").value;
+    document
+      .getElementById("loginPassword")
+      .value;
 
-  if (!email || !password) {
+  if(!email || !password){
 
     message(
       "authMessage",
@@ -1063,19 +1547,27 @@ async function login() {
     );
 
     return;
+
   }
 
-  try {
+  try{
 
-    var data = await api("/login", {
-      method:"POST",
-      body:JSON.stringify({
-        email:email,
-        password:password
-      })
-    });
+    var data =
+      await api("/login",{
 
-    tokenValue = data.token;
+        method:"POST",
+
+        body:JSON.stringify({
+
+          email:email,
+          password:password
+
+        })
+
+      });
+
+    tokenValue =
+      data.token;
 
     localStorage.setItem(
       "dokanyar_token",
@@ -1084,14 +1576,16 @@ async function login() {
 
     openApp(data.user);
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "authMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1099,18 +1593,28 @@ async function login() {
    OPEN APP
 ========================= */
 
-function openApp(user) {
+async function openApp(user){
 
-  document.getElementById("authPage")
-    .classList.add("hidden");
+  document
+    .getElementById("authPage")
+    .classList
+    .add("hidden");
 
-  document.getElementById("appPage")
-    .classList.remove("hidden");
+  document
+    .getElementById("appPage")
+    .classList
+    .remove("hidden");
 
-  document.getElementById("welcome").textContent =
-    "خوش آمدید " + (user.name || "");
+  document
+    .getElementById("welcome")
+    .textContent =
+      "خوش آمدید " +
+      (user.name || "");
+
+  await loadSubscription();
 
   loadDashboard();
+
 }
 
 
@@ -1118,22 +1622,28 @@ function openApp(user) {
    AUTO LOGIN
 ========================= */
 
-async function checkLogin() {
+async function checkLogin(){
 
-  if (!tokenValue) return;
+  if(!tokenValue)
+    return;
 
-  try {
+  try{
 
-    var data = await api("/me");
+    var data =
+      await api("/me");
 
-    openApp(data.user);
+    await openApp(data.user);
 
-  } catch(error) {
+  }catch(error){
 
     tokenValue = "";
 
-    localStorage.removeItem("dokanyar_token");
+    localStorage.removeItem(
+      "dokanyar_token"
+    );
+
   }
+
 }
 
 
@@ -1141,19 +1651,401 @@ async function checkLogin() {
    LOGOUT
 ========================= */
 
-async function logout() {
+async function logout(){
 
-  try {
-    await api("/logout", {
+  try{
+
+    await api("/logout",{
       method:"POST"
     });
-  } catch(e) {}
+
+  }catch(e){}
 
   tokenValue = "";
 
-  localStorage.removeItem("dokanyar_token");
+  localStorage.removeItem(
+    "dokanyar_token"
+  );
 
   location.reload();
+
+}
+
+
+/* =========================
+   SUBSCRIPTION
+========================= */
+
+async function loadSubscription(){
+
+  try{
+
+    var data =
+      await api("/subscription");
+
+    subscriptionData =
+      data.subscription ||
+      data ||
+      subscriptionData;
+
+    renderSubscription();
+
+  }catch(error){
+
+    console.log(
+      "Subscription:",
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   RENDER SUBSCRIPTION
+========================= */
+
+function renderSubscription(){
+
+  var s =
+    subscriptionData || {};
+
+  var isPro =
+    s.is_pro === true ||
+    String(s.plan).toLowerCase() === "pro";
+
+  var limit =
+    Number(
+      s.product_limit ||
+      (isPro ? 500 : 50)
+    );
+
+  var count =
+    Number(
+      s.products_count ||
+      productsData.length ||
+      0
+    );
+
+  var days =
+    Number(
+      s.days_remaining || 0
+    );
+
+  var box =
+    document.getElementById(
+      "subscriptionBox"
+    );
+
+  var title =
+    document.getElementById(
+      "subscriptionTitle"
+    );
+
+  var text =
+    document.getElementById(
+      "subscriptionText"
+    );
+
+  var badge =
+    document.getElementById(
+      "subscriptionBadge"
+    );
+
+  var countEl =
+    document.getElementById(
+      "subProductCount"
+    );
+
+  var limitEl =
+    document.getElementById(
+      "subProductLimit"
+    );
+
+  var daysEl =
+    document.getElementById(
+      "subDays"
+    );
+
+  var progress =
+    document.getElementById(
+      "subscriptionProgress"
+    );
+
+  var actions =
+    document.getElementById(
+      "subscriptionActions"
+    );
+
+  box.className =
+    "subscription " +
+    (isPro ? "pro" : "free");
+
+  if(isPro){
+
+    title.textContent =
+      "⭐ نسخه حرفه‌ای Pro";
+
+    badge.textContent =
+      "PRO";
+
+    badge.className =
+      "badge pro";
+
+    text.textContent =
+      "اشتراک Pro فعال است.";
+
+    daysEl.textContent =
+      days > 0
+        ? formatNumber(days) + " روز"
+        : "منقضی شده";
+
+  }else{
+
+    title.textContent =
+      "🆓 نسخه رایگان";
+
+    badge.textContent =
+      "FREE";
+
+    badge.className =
+      "badge free";
+
+    text.textContent =
+      "تا 50 کالا رایگان استفاده کنید.";
+
+    daysEl.textContent =
+      "—";
+
+  }
+
+  countEl.textContent =
+    formatNumber(count);
+
+  limitEl.textContent =
+    formatNumber(limit);
+
+  var percent =
+    limit > 0
+      ? Math.min(
+          100,
+          (count / limit) * 100
+        )
+      : 0;
+
+  progress.style.width =
+    percent + "%";
+
+  actions.innerHTML = "";
+
+  if(!isPro){
+
+    actions.innerHTML = `
+      <button
+        class="pro"
+        onclick="showUpgrade()">
+        ⭐ ارتقای Pro — 500 AFN / 30 روز
+      </button>
+    `;
+
+    if(count >= limit){
+
+      actions.innerHTML += `
+        <div
+          class="message warning"
+          style="margin-top:10px;margin-bottom:0">
+          سقف 50 کالا تکمیل شده است.
+          برای افزودن کالاهای بیشتر، Pro را فعال کنید.
+        </div>
+      `;
+
+    }else if(count >= limit - 5){
+
+      actions.innerHTML += `
+        <div
+          class="message warning"
+          style="margin-top:10px;margin-bottom:0">
+          فقط ${formatNumber(limit-count)}
+          جای کالا باقی مانده است.
+        </div>
+      `;
+
+    }
+
+  }else{
+
+    actions.innerHTML = `
+      <div class="small">
+        اشتراک Pro شما فعال است و تا
+        ${formatNumber(days)}
+        روز دیگر اعتبار دارد.
+      </div>
+    `;
+
+  }
+
+  updateProductButton();
+
+}
+
+
+/* =========================
+   UPGRADE
+========================= */
+
+function showUpgrade(){
+
+  var actions =
+    document.getElementById(
+      "subscriptionActions"
+    );
+
+  actions.innerHTML = `
+
+    <div class="upgrade-box">
+
+      <h3>⭐ ارتقای دوکان به Pro</h3>
+
+      <div class="muted">
+        با Pro امکانات بیشتری برای مدیریت دوکان خواهید داشت.
+      </div>
+
+      <br>
+
+      <div class="price">
+        500 AFN
+      </div>
+
+      <div class="small">
+        اعتبار: 30 روز
+      </div>
+
+      <br>
+
+      <div class="muted">
+        بعد از پرداخت، درخواست خود را ثبت کنید.
+        فعال‌سازی فعلاً توسط مدیریت انجام می‌شود.
+      </div>
+
+      <br>
+
+      <input
+        id="paymentReference"
+        placeholder="شماره حواله / رسید / توضیحات پرداخت"
+        style="margin-bottom:10px">
+
+      <button
+        class="pro"
+        onclick="requestUpgrade()">
+        ارسال درخواست ارتقا
+      </button>
+
+      <button
+        class="secondary"
+        onclick="renderSubscription()"
+        style="margin-right:6px">
+        انصراف
+      </button>
+
+      <div
+        id="upgradeMessage"
+        class="message"
+        style="margin-top:12px">
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================
+   REQUEST UPGRADE
+========================= */
+
+async function requestUpgrade(){
+
+  var input =
+    document.getElementById(
+      "paymentReference"
+    );
+
+  var reference =
+    input
+      ? input.value.trim()
+      : "";
+
+  var msg =
+    document.getElementById(
+      "upgradeMessage"
+    );
+
+  if(!reference){
+
+    if(msg){
+
+      msg.className =
+        "message error";
+
+      msg.textContent =
+        "شماره رسید یا توضیحات پرداخت را وارد کنید.";
+
+    }
+
+    return;
+
+  }
+
+  try{
+
+    var data =
+      await api("/upgrade-request",{
+
+        method:"POST",
+
+        body:JSON.stringify({
+
+          reference:reference,
+          note:
+            "درخواست ارتقای Pro توسط کاربر"
+
+        })
+
+      });
+
+    if(msg){
+
+      msg.className =
+        "message ok";
+
+      msg.textContent =
+        data.message ||
+        "درخواست شما ثبت شد.";
+
+    }
+
+    setTimeout(function(){
+
+      loadSubscription();
+
+    },1000);
+
+  }catch(error){
+
+    if(msg){
+
+      msg.className =
+        "message error";
+
+      msg.textContent =
+        error.message;
+
+    }
+
+  }
+
 }
 
 
@@ -1161,7 +2053,7 @@ async function logout() {
    PAGES
 ========================= */
 
-function showPage(page) {
+function showPage(page){
 
   var pages = [
     "dashboard",
@@ -1173,53 +2065,83 @@ function showPage(page) {
     "shop"
   ];
 
-  for (var i=0;i<pages.length;i++) {
+  for(
+    var i=0;
+    i<pages.length;
+    i++
+  ){
 
-    var p = pages[i];
+    var p =
+      pages[i];
 
-    document.getElementById(
-      "page" +
+    var pageName =
       p.charAt(0).toUpperCase() +
-      p.slice(1)
-    ).classList.add("hidden");
+      p.slice(1);
 
-    document.getElementById(
-      "tab" +
-      p.charAt(0).toUpperCase() +
-      p.slice(1)
-    ).classList.remove("active");
+    document
+      .getElementById(
+        "page" + pageName
+      )
+      .classList
+      .add("hidden");
+
+    document
+      .getElementById(
+        "tab" + pageName
+      )
+      .classList
+      .remove("active");
+
   }
 
   var title =
     page.charAt(0).toUpperCase() +
     page.slice(1);
 
-  document.getElementById(
-    "page" + title
-  ).classList.remove("hidden");
+  document
+    .getElementById(
+      "page" + title
+    )
+    .classList
+    .remove("hidden");
 
-  document.getElementById(
-    "tab" + title
-  ).classList.add("active");
+  document
+    .getElementById(
+      "tab" + title
+    )
+    .classList
+    .add("active");
 
-  if (page === "dashboard")
+
+  if(page === "dashboard")
     loadDashboard();
 
-  if (page === "products")
+  if(page === "products"){
+
     loadProducts();
 
-  if (page === "buy" || page === "sell") {
-    loadProducts();
+    loadSubscription();
+
   }
 
-  if (page === "history")
+  if(
+    page === "buy" ||
+    page === "sell"
+  ){
+
+    loadProducts();
+
+  }
+
+  if(page === "history")
     loadHistory();
 
-  if (page === "workers")
+  if(page === "workers")
     loadWorkers();
 
-  if (page === "shop")
+  if(page === "shop")
     loadShop();
+
 }
 
 
@@ -1227,24 +2149,23 @@ function showPage(page) {
    DASHBOARD
 ========================= */
 
-async function loadDashboard() {
+async function loadDashboard(){
 
-  document.getElementById(
-    "dashboardStatus"
-  ).textContent =
-    "در حال دریافت اطلاعات...";
+  document
+    .getElementById(
+      "dashboardStatus"
+    )
+    .textContent =
+      "در حال دریافت اطلاعات...";
 
-  try {
+  try{
 
-    var data = await api("/dashboard");
+    var data =
+      await api("/dashboard");
 
-    var d = data.dashboard || data;
-
-    /*
-      این قسمت مهم است:
-      API ممکن است آمار را داخل dashboard
-      یا مستقیماً در پاسخ بفرستد.
-    */
+    var d =
+      data.dashboard ||
+      data;
 
     var buyCount =
       Number(
@@ -1302,61 +2223,110 @@ async function loadDashboard() {
         0
       );
 
-    document.getElementById("buyCount").textContent =
-      formatNumber(buyCount);
 
-    document.getElementById("sellCount").textContent =
-      formatNumber(sellCount);
+    document
+      .getElementById("buyCount")
+      .textContent =
+        formatNumber(buyCount);
 
-    document.getElementById("productCount").textContent =
-      formatNumber(productCount);
+    document
+      .getElementById("sellCount")
+      .textContent =
+        formatNumber(sellCount);
 
-    document.getElementById("stockCount").textContent =
-      formatNumber(stock);
+    document
+      .getElementById("productCount")
+      .textContent =
+        formatNumber(productCount);
 
-    document.getElementById("totalBuy").textContent =
-      money(totalBuy);
+    document
+      .getElementById("stockCount")
+      .textContent =
+        formatNumber(stock);
 
-    document.getElementById("totalSell").textContent =
-      money(totalSell);
+    document
+      .getElementById("totalBuy")
+      .textContent =
+        money(totalBuy);
 
-    document.getElementById("totalProfit").textContent =
-      money(profit);
+    document
+      .getElementById("totalSell")
+      .textContent =
+        money(totalSell);
 
-    document.getElementById("lowStock").textContent =
-      formatNumber(lowStock);
+    document
+      .getElementById("totalProfit")
+      .textContent =
+        money(profit);
 
-
-    var today = d.today || {};
-
-    document.getElementById("todayBuy").textContent =
-      money(Number(today.buy_total || 0));
-
-    document.getElementById("todaySell").textContent =
-      money(Number(today.sell_total || 0));
-
-    document.getElementById("todayProfit").textContent =
-      money(Number(today.profit || 0));
+    document
+      .getElementById("lowStock")
+      .textContent =
+        formatNumber(lowStock);
 
 
-    document.getElementById(
-      "dashboardStatus"
-    ).textContent =
-      "آخرین بروزرسانی موفق بود. اطلاعات از دیتابیس خوانده شد.";
+    var today =
+      d.today || {};
 
-  } catch(error) {
+    document
+      .getElementById("todayBuy")
+      .textContent =
+        money(
+          Number(
+            today.buy_total || 0
+          )
+        );
 
-    document.getElementById(
-      "dashboardStatus"
-    ).textContent =
-      "خطا: " + error.message;
+    document
+      .getElementById("todaySell")
+      .textContent =
+        money(
+          Number(
+            today.sell_total || 0
+          )
+        );
+
+    document
+      .getElementById("todayProfit")
+      .textContent =
+        money(
+          Number(
+            today.profit || 0
+          )
+        );
+
+
+    document
+      .getElementById(
+        "dashboardStatus"
+      )
+      .textContent =
+        "آخرین بروزرسانی موفق بود. اطلاعات از دیتابیس خوانده شد.";
+
+
+    subscriptionData.products_count =
+      productCount;
+
+    renderSubscription();
+
+  }catch(error){
+
+    document
+      .getElementById(
+        "dashboardStatus"
+      )
+      .textContent =
+        "خطا: " +
+        error.message;
 
     message(
       "dashboardMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1364,96 +2334,224 @@ async function loadDashboard() {
    PRODUCTS
 ========================= */
 
-async function loadProducts() {
+async function loadProducts(){
 
-  try {
+  try{
 
-    var data = await api("/products");
+    var data =
+      await api("/products");
 
     productsData =
       data.products || [];
+
+    if(data.subscription){
+
+      subscriptionData =
+        data.subscription;
+
+    }
+
+    subscriptionData.products_count =
+      productsData.length;
 
     renderProducts();
 
     fillProductSelects();
 
-  } catch(error) {
+    renderSubscription();
 
-    document.getElementById(
-      "productsList"
-    ).textContent =
-      "خطا: " + error.message;
+  }catch(error){
+
+    document
+      .getElementById(
+        "productsList"
+      )
+      .textContent =
+        "خطا: " +
+        error.message;
+
   }
+
 }
 
 
-function renderProducts() {
+/* =========================
+   PRODUCT RENDER
+========================= */
+
+function renderProducts(){
 
   var box =
-    document.getElementById("productsList");
+    document.getElementById(
+      "productsList"
+    );
 
   var search =
     (
-      document.getElementById("productSearch")?.value ||
+      document
+        .getElementById(
+          "productSearch"
+        )
+        ?.value ||
       ""
     ).toLowerCase();
 
   var list =
-    productsData.filter(function(p){
+    productsData.filter(
+      function(p){
 
-      var text =
-        (
-          (p.name || "") +
-          " " +
-          (p.brand || "") +
-          " " +
-          (p.model || "")
-        ).toLowerCase();
+        var text =
+          (
+            (p.name || "") +
+            " " +
+            (p.brand || "") +
+            " " +
+            (p.model || "")
+          ).toLowerCase();
 
-      return text.indexOf(search) !== -1;
-    });
+        return text.indexOf(search) !== -1;
 
-  if (!list.length) {
+      }
+    );
+
+
+  if(!list.length){
 
     box.innerHTML =
       '<div class="muted">کالایی پیدا نشد.</div>';
 
     return;
+
   }
+
 
   var html = "";
 
-  list.forEach(function(p){
 
-    html += `
-      <div class="product-card">
+  list.forEach(
+    function(p){
 
-        <b>${escapeHtml(p.name || "")}</b>
+      html += `
 
-        <div class="muted">
-          ${escapeHtml(p.brand || "")}
-          ${escapeHtml(p.model || "")}
+        <div class="product-card">
+
+          <b>
+            ${escapeHtml(p.name || "")}
+          </b>
+
+          <div class="muted">
+
+            ${escapeHtml(p.brand || "")}
+
+            ${escapeHtml(p.model || "")}
+
+          </div>
+
+          <div style="margin-top:8px">
+
+            خرید:
+            ${money(
+              Number(
+                p.buy_price || 0
+              )
+            )}
+
+            <br>
+
+            فروش:
+            ${money(
+              Number(
+                p.sell_price || 0
+              )
+            )}
+
+            <br>
+
+            موجودی:
+
+            <b>
+              ${formatNumber(
+                Number(
+                  p.quantity || 0
+                )
+              )}
+            </b>
+
+          </div>
+
         </div>
 
-        <div style="margin-top:8px">
-          خرید: ${money(Number(p.buy_price || 0))}
-          <br>
-          فروش: ${money(Number(p.sell_price || 0))}
-          <br>
-          موجودی:
-          <b>${formatNumber(Number(p.quantity || 0))}</b>
-        </div>
+      `;
 
-      </div>
-    `;
-  });
+    }
+  );
 
-  box.innerHTML = html;
+
+  box.innerHTML =
+    html;
+
 }
 
 
-function filterProducts() {
+function filterProducts(){
+
   renderProducts();
+
+}
+
+
+/* =========================
+   PRODUCT BUTTON
+========================= */
+
+function updateProductButton(){
+
+  var btn =
+    document.getElementById(
+      "addProductButton"
+    );
+
+  if(!btn)
+    return;
+
+  var isPro =
+    subscriptionData.is_pro === true ||
+    String(
+      subscriptionData.plan
+    ).toLowerCase() === "pro";
+
+  var limit =
+    Number(
+      subscriptionData.product_limit ||
+      (isPro ? 500 : 50)
+    );
+
+  var count =
+    Number(
+      subscriptionData.products_count ||
+      productsData.length ||
+      0
+    );
+
+  if(
+    !isPro &&
+    count >= limit
+  ){
+
+    btn.disabled = true;
+
+    btn.textContent =
+      "🔒 سقف رایگان تکمیل شده";
+
+  }else{
+
+    btn.disabled = false;
+
+    btn.textContent =
+      "افزودن کالا";
+
+  }
+
 }
 
 
@@ -1461,30 +2559,87 @@ function filterProducts() {
    ADD PRODUCT
 ========================= */
 
-async function addProduct() {
+async function addProduct(){
+
+  var isPro =
+    subscriptionData.is_pro === true ||
+    String(
+      subscriptionData.plan
+    ).toLowerCase() === "pro";
+
+  var limit =
+    Number(
+      subscriptionData.product_limit ||
+      (isPro ? 500 : 50)
+    );
+
+  var count =
+    Number(
+      subscriptionData.products_count ||
+      productsData.length ||
+      0
+    );
+
+  if(!isPro && count >= limit){
+
+    message(
+      "productLimitMessage",
+      "سقف 50 کالا تکمیل شده است. برای افزودن کالاهای بیشتر، Pro را با 500 AFN فعال کنید.",
+      false
+    );
+
+    showUpgrade();
+
+    return;
+
+  }
+
 
   var data = {
 
     name:
-      document.getElementById("productName").value.trim(),
+      document
+        .getElementById("productName")
+        .value
+        .trim(),
 
     brand:
-      document.getElementById("productBrand").value.trim(),
+      document
+        .getElementById("productBrand")
+        .value
+        .trim(),
 
     model:
-      document.getElementById("productModel").value.trim(),
+      document
+        .getElementById("productModel")
+        .value
+        .trim(),
 
     buy_price:
-      Number(document.getElementById("productBuy").value || 0),
+      Number(
+        document
+          .getElementById("productBuy")
+          .value || 0
+      ),
 
     sell_price:
-      Number(document.getElementById("productSell").value || 0),
+      Number(
+        document
+          .getElementById("productSell")
+          .value || 0
+      ),
 
     quantity:
-      Number(document.getElementById("productQty").value || 0)
+      Number(
+        document
+          .getElementById("productQty")
+          .value || 0
+      )
+
   };
 
-  if (!data.name) {
+
+  if(!data.name){
 
     message(
       "productMessage",
@@ -1493,14 +2648,21 @@ async function addProduct() {
     );
 
     return;
+
   }
 
-  try {
 
-    await api("/products", {
+  try{
+
+    await api("/products",{
+
       method:"POST",
-      body:JSON.stringify(data)
+
+      body:
+        JSON.stringify(data)
+
     });
+
 
     message(
       "productMessage",
@@ -1508,24 +2670,64 @@ async function addProduct() {
       true
     );
 
-    document.getElementById("productName").value = "";
-    document.getElementById("productBrand").value = "";
-    document.getElementById("productModel").value = "";
-    document.getElementById("productBuy").value = "";
-    document.getElementById("productSell").value = "";
-    document.getElementById("productQty").value = "";
+
+    document
+      .getElementById("productName")
+      .value = "";
+
+    document
+      .getElementById("productBrand")
+      .value = "";
+
+    document
+      .getElementById("productModel")
+      .value = "";
+
+    document
+      .getElementById("productBuy")
+      .value = "";
+
+    document
+      .getElementById("productSell")
+      .value = "";
+
+    document
+      .getElementById("productQty")
+      .value = "";
+
 
     await loadProducts();
+
     await loadDashboard();
 
-  } catch(error) {
+  }catch(error){
+
+    if(
+      error.code ===
+      "UPGRADE_REQUIRED"
+    ){
+
+      message(
+        "productLimitMessage",
+        "سقف رایگان تکمیل شده است. لطفاً Pro را فعال کنید.",
+        false
+      );
+
+      showUpgrade();
+
+      return;
+
+    }
+
 
     message(
       "productMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1533,29 +2735,48 @@ async function addProduct() {
    SELECT PRODUCTS
 ========================= */
 
-function fillProductSelects() {
+function fillProductSelects(){
 
   var buy =
-    document.getElementById("buyProduct");
+    document.getElementById(
+      "buyProduct"
+    );
 
   var sell =
-    document.getElementById("sellProduct");
+    document.getElementById(
+      "sellProduct"
+    );
 
   var html =
     '<option value="">انتخاب محصول</option>';
 
-  productsData.forEach(function(p){
 
-    html +=
-      '<option value="' + p.id + '">' +
-      escapeHtml(p.name) +
-      ' | موجودی: ' +
-      Number(p.quantity || 0) +
-      '</option>';
-  });
+  productsData.forEach(
+    function(p){
 
-  buy.innerHTML = html;
-  sell.innerHTML = html;
+      html +=
+        '<option value="' +
+        p.id +
+        '">' +
+        escapeHtml(
+          p.name
+        ) +
+        ' | موجودی: ' +
+        Number(
+          p.quantity || 0
+        ) +
+        '</option>';
+
+    }
+  );
+
+
+  buy.innerHTML =
+    html;
+
+  sell.innerHTML =
+    html;
+
 }
 
 
@@ -1563,19 +2784,25 @@ function fillProductSelects() {
    CURRENCY
 ========================= */
 
-function currencyChanged(type) {
+function currencyChanged(type){
 
   var currency =
-    document.getElementById(
-      type + "Currency"
-    ).value;
+    document
+      .getElementById(
+        type + "Currency"
+      )
+      .value;
 
-  document.getElementById(
-    type + "RateBox"
-  ).classList.toggle(
-    "hidden",
-    currency !== "USD"
-  );
+  document
+    .getElementById(
+      type + "RateBox"
+    )
+    .classList
+    .toggle(
+      "hidden",
+      currency !== "USD"
+    );
+
 }
 
 
@@ -1583,34 +2810,59 @@ function currencyChanged(type) {
    BUY
 ========================= */
 
-async function buyProduct() {
+async function buyProduct(){
 
   var product_id =
     Number(
-      document.getElementById("buyProduct").value
+      document
+        .getElementById(
+          "buyProduct"
+        )
+        .value
     );
 
   var quantity =
     Number(
-      document.getElementById("buyQty").value
+      document
+        .getElementById(
+          "buyQty"
+        )
+        .value
     );
 
   var currency =
-    document.getElementById("buyCurrency").value;
+    document
+      .getElementById(
+        "buyCurrency"
+      )
+      .value;
 
   var unit_price =
     Number(
-      document.getElementById("buyPrice").value
+      document
+        .getElementById(
+          "buyPrice"
+        )
+        .value
     );
 
   var rate =
     currency === "USD"
       ? Number(
-          document.getElementById("buyRate").value
+          document
+            .getElementById(
+              "buyRate"
+            )
+            .value
         )
       : 1;
 
-  if (!product_id || quantity <= 0 || unit_price <= 0) {
+
+  if(
+    !product_id ||
+    quantity <= 0 ||
+    unit_price <= 0
+  ){
 
     message(
       "buyMessage",
@@ -1619,9 +2871,14 @@ async function buyProduct() {
     );
 
     return;
+
   }
 
-  if (currency === "USD" && rate <= 0) {
+
+  if(
+    currency === "USD" &&
+    rate <= 0
+  ){
 
     message(
       "buyMessage",
@@ -1630,20 +2887,39 @@ async function buyProduct() {
     );
 
     return;
+
   }
 
-  try {
 
-    var data = await api("/buy", {
-      method:"POST",
-      body:JSON.stringify({
-        product_id:product_id,
-        quantity:quantity,
-        unit_price:unit_price,
-        currency:currency,
-        currency_rate:rate
-      })
-    });
+  try{
+
+    var data =
+      await api("/buy",{
+
+        method:"POST",
+
+        body:
+          JSON.stringify({
+
+            product_id:
+              product_id,
+
+            quantity:
+              quantity,
+
+            unit_price:
+              unit_price,
+
+            currency:
+              currency,
+
+            currency_rate:
+              rate
+
+          })
+
+      });
+
 
     message(
       "buyMessage",
@@ -1652,20 +2928,34 @@ async function buyProduct() {
       true
     );
 
-    document.getElementById("buyQty").value = "";
-    document.getElementById("buyPrice").value = "";
+
+    document
+      .getElementById(
+        "buyQty"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "buyPrice"
+      )
+      .value = "";
+
 
     await loadProducts();
+
     await loadDashboard();
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "buyMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1673,34 +2963,59 @@ async function buyProduct() {
    SELL
 ========================= */
 
-async function sellProduct() {
+async function sellProduct(){
 
   var product_id =
     Number(
-      document.getElementById("sellProduct").value
+      document
+        .getElementById(
+          "sellProduct"
+        )
+        .value
     );
 
   var quantity =
     Number(
-      document.getElementById("sellQty").value
+      document
+        .getElementById(
+          "sellQty"
+        )
+        .value
     );
 
   var currency =
-    document.getElementById("sellCurrency").value;
+    document
+      .getElementById(
+        "sellCurrency"
+      )
+      .value;
 
   var unit_price =
     Number(
-      document.getElementById("sellPrice").value
+      document
+        .getElementById(
+          "sellPrice"
+        )
+        .value
     );
 
   var rate =
     currency === "USD"
       ? Number(
-          document.getElementById("sellRate").value
+          document
+            .getElementById(
+              "sellRate"
+            )
+            .value
         )
       : 1;
 
-  if (!product_id || quantity <= 0 || unit_price <= 0) {
+
+  if(
+    !product_id ||
+    quantity <= 0 ||
+    unit_price <= 0
+  ){
 
     message(
       "sellMessage",
@@ -1709,9 +3024,14 @@ async function sellProduct() {
     );
 
     return;
+
   }
 
-  if (currency === "USD" && rate <= 0) {
+
+  if(
+    currency === "USD" &&
+    rate <= 0
+  ){
 
     message(
       "sellMessage",
@@ -1720,44 +3040,81 @@ async function sellProduct() {
     );
 
     return;
+
   }
 
-  try {
 
-    var data = await api("/sell", {
-      method:"POST",
-      body:JSON.stringify({
-        product_id:product_id,
-        quantity:quantity,
-        unit_price:unit_price,
-        currency:currency,
-        currency_rate:rate
-      })
-    });
+  try{
+
+    var data =
+      await api("/sell",{
+
+        method:"POST",
+
+        body:
+          JSON.stringify({
+
+            product_id:
+              product_id,
+
+            quantity:
+              quantity,
+
+            unit_price:
+              unit_price,
+
+            currency:
+              currency,
+
+            currency_rate:
+              rate
+
+          })
+
+      });
+
 
     message(
       "sellMessage",
       "فروش ثبت شد. سود این فروش: " +
-      money(Number(data.profit || 0)) +
+      money(
+        Number(
+          data.profit || 0
+        )
+      ) +
       " | موجودی: " +
       data.stock,
       true
     );
 
-    document.getElementById("sellQty").value = "";
-    document.getElementById("sellPrice").value = "";
+
+    document
+      .getElementById(
+        "sellQty"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "sellPrice"
+      )
+      .value = "";
+
 
     await loadProducts();
+
     await loadDashboard();
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "sellMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1765,67 +3122,137 @@ async function sellProduct() {
    HISTORY
 ========================= */
 
-async function loadHistory() {
+async function loadHistory(){
 
   var table =
-    document.getElementById("historyTable");
+    document.getElementById(
+      "historyTable"
+    );
 
   table.innerHTML =
     '<tr><td colspan="8">در حال دریافت...</td></tr>';
 
-  try {
+
+  try{
 
     var data =
-      await api("/transactions");
+      await api(
+        "/transactions"
+      );
 
     var rows =
       data.transactions || [];
 
-    if (!rows.length) {
+
+    if(!rows.length){
 
       table.innerHTML =
         '<tr><td colspan="8">هنوز معامله‌ای ثبت نشده است.</td></tr>';
 
       return;
+
     }
+
 
     var html = "";
 
-    rows.forEach(function(t){
 
-      var type =
-        t.type === "buy"
-          ? '<span class="badge buy">خرید</span>'
-          : '<span class="badge sell">فروش</span>';
+    rows.forEach(
+      function(t){
 
-      var date =
-        t.created_at
-          ? new Date(t.created_at).toLocaleString("fa-IR")
-          : "";
+        var type =
+          t.type === "buy"
+            ? '<span class="badge buy">خرید</span>'
+            : '<span class="badge sell">فروش</span>';
 
-      html += `
-        <tr>
-          <td>${type}</td>
-          <td>${escapeHtml(t.product_name || "-")}</td>
-          <td>${formatNumber(Number(t.quantity || 0))}</td>
-          <td>${formatNumber(Number(t.unit_price || 0))}</td>
-          <td>${escapeHtml(t.currency || "AFN")}</td>
-          <td>${money(Number(t.base_total || t.total || 0))}</td>
-          <td>${money(Number(t.profit || 0))}</td>
-          <td>${date}</td>
-        </tr>
-      `;
-    });
+        var date =
+          t.created_at
+            ? new Date(
+                t.created_at
+              ).toLocaleString(
+                "fa-IR"
+              )
+            : "";
 
-    table.innerHTML = html;
 
-  } catch(error) {
+        html += `
+
+          <tr>
+
+            <td>${type}</td>
+
+            <td>
+              ${escapeHtml(
+                t.product_name || "-"
+              )}
+            </td>
+
+            <td>
+              ${formatNumber(
+                Number(
+                  t.quantity || 0
+                )
+              )}
+            </td>
+
+            <td>
+              ${formatNumber(
+                Number(
+                  t.unit_price || 0
+                )
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                t.currency || "AFN"
+              )}
+            </td>
+
+            <td>
+              ${money(
+                Number(
+                  t.base_total ||
+                  t.total ||
+                  0
+                )
+              )}
+            </td>
+
+            <td>
+              ${money(
+                Number(
+                  t.profit || 0
+                )
+              )}
+            </td>
+
+            <td>
+              ${date}
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+    );
+
+
+    table.innerHTML =
+      html;
+
+  }catch(error){
 
     table.innerHTML =
       '<tr><td colspan="8">' +
-      escapeHtml(error.message) +
+      escapeHtml(
+        error.message
+      ) +
       '</td></tr>';
+
   }
+
 }
 
 
@@ -1833,26 +3260,33 @@ async function loadHistory() {
    WORKERS
 ========================= */
 
-async function loadWorkers() {
+async function loadWorkers(){
 
   var box =
-    document.getElementById("workersList");
+    document.getElementById(
+      "workersList"
+    );
 
-  try {
+  try{
 
     var data =
-      await api("/workers");
+      await api(
+        "/workers"
+      );
 
     var workers =
       data.workers || [];
 
-    if (!workers.length) {
+
+    if(!workers.length){
 
       box.innerHTML =
         '<div class="muted">هنوز کارمندی اضافه نشده است.</div>';
 
       return;
+
     }
+
 
     var html =
       '<div class="table-wrap"><table>' +
@@ -1863,53 +3297,114 @@ async function loadWorkers() {
       '<th>عملیات</th>' +
       '</tr>';
 
-    workers.forEach(function(w){
 
-      html +=
-        '<tr>' +
-        '<td>' + escapeHtml(w.name || "") + '</td>' +
-        '<td>' + escapeHtml(w.username || "") + '</td>' +
-        '<td>' + escapeHtml(w.email || "") + '</td>' +
-        '<td><button class="danger" onclick="deleteWorker(' +
-        Number(w.id) +
-        ')">حذف</button></td>' +
-        '</tr>';
-    });
+    workers.forEach(
+      function(w){
 
-    html += '</table></div>';
+        html +=
+          '<tr>' +
 
-    box.innerHTML = html;
+          '<td>' +
+          escapeHtml(
+            w.name || ""
+          ) +
+          '</td>' +
 
-  } catch(error) {
+          '<td>' +
+          escapeHtml(
+            w.username || ""
+          ) +
+          '</td>' +
 
-    box.textContent = error.message;
+          '<td>' +
+          escapeHtml(
+            w.email || ""
+          ) +
+          '</td>' +
+
+          '<td>' +
+
+          '<button class="danger" onclick="deleteWorker(' +
+          Number(w.id) +
+          ')">' +
+
+          'حذف' +
+
+          '</button>' +
+
+          '</td>' +
+
+          '</tr>';
+
+      }
+    );
+
+
+    html +=
+      '</table></div>';
+
+    box.innerHTML =
+      html;
+
+  }catch(error){
+
+    box.textContent =
+      error.message;
+
   }
+
 }
 
 
-async function addWorker() {
+async function addWorker(){
 
   var data = {
 
     name:
-      document.getElementById("workerName").value.trim(),
+      document
+        .getElementById(
+          "workerName"
+        )
+        .value
+        .trim(),
 
     username:
-      document.getElementById("workerUsername").value.trim(),
+      document
+        .getElementById(
+          "workerUsername"
+        )
+        .value
+        .trim(),
 
     email:
-      document.getElementById("workerEmail").value.trim(),
+      document
+        .getElementById(
+          "workerEmail"
+        )
+        .value
+        .trim(),
 
     password:
-      document.getElementById("workerPassword").value
+      document
+        .getElementById(
+          "workerPassword"
+        )
+        .value
+
   };
 
-  try {
 
-    await api("/workers", {
-      method:"POST",
-      body:JSON.stringify(data)
-    });
+  try{
+
+    await api(
+      "/workers",
+      {
+        method:"POST",
+        body:
+          JSON.stringify(data)
+      }
+    );
+
 
     message(
       "workerMessage",
@@ -1917,47 +3412,82 @@ async function addWorker() {
       true
     );
 
-    document.getElementById("workerName").value = "";
-    document.getElementById("workerUsername").value = "";
-    document.getElementById("workerEmail").value = "";
-    document.getElementById("workerPassword").value = "";
+
+    document
+      .getElementById(
+        "workerName"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "workerUsername"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "workerEmail"
+      )
+      .value = "";
+
+    document
+      .getElementById(
+        "workerPassword"
+      )
+      .value = "";
+
 
     loadWorkers();
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "workerMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
-async function deleteWorker(id) {
+async function deleteWorker(id){
 
-  if (!confirm("این کارمند حذف شود؟")) return;
+  if(
+    !confirm(
+      "این کارمند حذف شود؟"
+    )
+  )
+    return;
 
-  try {
 
-    await api("/workers", {
-      method:"DELETE",
-      body:JSON.stringify({
-        id:id
-      })
-    });
+  try{
+
+    await api(
+      "/workers",
+      {
+        method:"DELETE",
+        body:
+          JSON.stringify({
+            id:id
+          })
+      }
+    );
 
     loadWorkers();
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "workerMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -1965,57 +3495,90 @@ async function deleteWorker(id) {
    SHOP
 ========================= */
 
-async function loadShop() {
+async function loadShop(){
 
-  try {
+  try{
 
     var data =
-      await api("/shop");
+      await api(
+        "/shop"
+      );
 
     var s =
       data.shop || {};
 
-    document.getElementById(
-      "shopEditName"
-    ).value = s.name || "";
 
-    document.getElementById(
-      "shopPhone"
-    ).value = s.phone || "";
+    document
+      .getElementById(
+        "shopEditName"
+      )
+      .value =
+        s.name || "";
 
-    document.getElementById(
-      "shopAddress"
-    ).value = s.address || "";
+    document
+      .getElementById(
+        "shopPhone"
+      )
+      .value =
+        s.phone || "";
 
-  } catch(error) {
+    document
+      .getElementById(
+        "shopAddress"
+      )
+      .value =
+        s.address || "";
+
+  }catch(error){
 
     message(
       "shopMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
-async function saveShop() {
+async function saveShop(){
 
-  try {
+  try{
 
-    await api("/shop", {
-      method:"PUT",
-      body:JSON.stringify({
+    await api(
+      "/shop",
+      {
+        method:"PUT",
 
-        name:
-          document.getElementById("shopEditName").value,
+        body:
+          JSON.stringify({
 
-        phone:
-          document.getElementById("shopPhone").value,
+            name:
+              document
+                .getElementById(
+                  "shopEditName"
+                )
+                .value,
 
-        address:
-          document.getElementById("shopAddress").value
-      })
-    });
+            phone:
+              document
+                .getElementById(
+                  "shopPhone"
+                )
+                .value,
+
+            address:
+              document
+                .getElementById(
+                  "shopAddress"
+                )
+                .value
+
+          })
+      }
+    );
+
 
     message(
       "shopMessage",
@@ -2023,14 +3586,16 @@ async function saveShop() {
       true
     );
 
-  } catch(error) {
+  }catch(error){
 
     message(
       "shopMessage",
       error.message,
       false
     );
+
   }
+
 }
 
 
@@ -2038,32 +3603,60 @@ async function saveShop() {
    HELPERS
 ========================= */
 
-function formatNumber(n) {
+function formatNumber(n){
 
-  if (!Number.isFinite(n)) n = 0;
+  if(!Number.isFinite(n))
+    n = 0;
 
-  return n.toLocaleString("en-US", {
-    maximumFractionDigits:2
-  });
+  return n.toLocaleString(
+    "en-US",
+    {
+      maximumFractionDigits:2
+    }
+  );
+
 }
 
 
-function money(n) {
+function money(n){
 
-  if (!Number.isFinite(n)) n = 0;
+  if(!Number.isFinite(n))
+    n = 0;
 
-  return formatNumber(n) + " AFN";
+  return (
+    formatNumber(n) +
+    " AFN"
+  );
+
 }
 
 
-function escapeHtml(value) {
+function escapeHtml(value){
 
-  return String(value || "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+  return String(
+    value || ""
+  )
+  .replace(
+    /&/g,
+    "&amp;"
+  )
+  .replace(
+    /</g,
+    "&lt;"
+  )
+  .replace(
+    />/g,
+    "&gt;"
+  )
+  .replace(
+    /"/g,
+    "&quot;"
+  )
+  .replace(
+    /'/g,
+    "&#039;"
+  );
+
 }
 
 
