@@ -1,273 +1,273 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10231d">
+  <meta name="theme-color" content="#10251b">
   <title>مدیریت دوکان‌یار</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Tahoma, Arial, sans-serif;
-      background: #f2f5f4;
-      color: #17221d;
+      background: #f3f6f4;
+      color: #17251d;
     }
     header {
-      background: #10231d;
+      background: #10251b;
       color: white;
       padding: 22px 16px;
     }
     header h1 { margin: 0 0 8px; font-size: 23px; }
-    header p { margin: 0; color: #c8d8d0; font-size: 13px; }
+    header p { margin: 0; color: #d0ded4; font-size: 13px; }
     main { max-width: 850px; margin: auto; padding: 16px; }
-    .panel, .payment {
+    .panel, .request {
       background: white;
-      border: 1px solid #dfe7e2;
+      border: 1px solid #e0e7e2;
       border-radius: 14px;
       padding: 16px;
       margin-bottom: 14px;
-      box-shadow: 0 3px 12px #12251a08;
+      box-shadow: 0 3px 12px #10251b0a;
     }
-    h2 { font-size: 17px; margin: 0 0 14px; }
-    label { display: block; font-size: 13px; margin-bottom: 7px; }
-    input {
+    label { display: block; margin: 12px 0 7px; font-size: 14px; }
+    input, textarea {
       width: 100%;
-      padding: 13px;
-      border: 1px solid #cbd7d0;
+      padding: 12px;
+      border: 1px solid #ccd7cf;
       border-radius: 9px;
-      font-size: 15px;
-      margin-bottom: 12px;
+      font: inherit;
+      font-size: 14px;
       background: white;
     }
     button {
       border: 0;
       border-radius: 9px;
       padding: 12px 15px;
-      font-size: 14px;
-      font-weight: bold;
+      font: inherit;
       cursor: pointer;
+      margin: 5px 3px 0 0;
     }
-    button:disabled { opacity: .55; cursor: wait; }
-    .primary { background: #147d50; color: white; }
-    .secondary { background: #e7eee9; color: #173d2c; }
-    .danger { background: #ffebeb; color: #a12020; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .row button { flex: 1; }
-    .muted { color: #6b7871; font-size: 12px; line-height: 1.8; }
-    .message { margin-top: 12px; font-size: 13px; line-height: 1.8; }
-    .payment h3 { margin: 0 0 12px; font-size: 17px; }
-    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .detail {
-      background: #f6f8f6;
-      border-radius: 8px;
-      padding: 10px;
-      min-width: 0;
-      overflow-wrap: anywhere;
+    .primary { background: #176b43; color: white; }
+    .approve { background: #176b43; color: white; }
+    .reject { background: #b42318; color: white; }
+    .secondary { background: #e8eee9; color: #17251d; }
+    .muted { color: #64736a; font-size: 13px; }
+    .status {
+      display: inline-block;
+      border-radius: 20px;
+      background: #fff1cc;
+      color: #805500;
+      padding: 5px 10px;
+      font-size: 12px;
     }
-    .detail small { display: block; color: #68756e; margin-bottom: 5px; }
-    .detail strong { font-size: 13px; }
-    .payment .row { margin-top: 14px; }
-    .status { color: #9a5b00; font-size: 12px; }
+    .approved { background: #dff6e7; color: #176b43; }
+    .rejected { background: #ffe5e2; color: #b42318; }
+    .request h3 { margin: 0 0 12px; font-size: 17px; }
+    .request p { line-height: 1.8; margin: 5px 0; font-size: 14px; }
+    #message { margin-top: 12px; font-size: 14px; line-height: 1.8; }
     .hidden { display: none; }
-    @media (max-width: 480px) {
-      .details { grid-template-columns: 1fr; }
-      header h1 { font-size: 21px; }
-    }
+    .actions { margin-top: 12px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>مدیریت دوکان‌یار</h1>
-    <p>بررسی درخواست‌ها و فعال‌سازی اشتراک مشتریان</p>
-  </header>
+<header>
+  <h1>مدیریت دوکان‌یار</h1>
+  <p>بررسی درخواست‌های فعال‌سازی رایگان دایمی</p>
+</header>
 
-  <main>
-    <section class="panel">
-      <h2>ورود مدیر</h2>
-      <label for="adminKey">کلید مدیریت (DOKANYAAR_ADMIN_KEY)</label>
-      <input id="adminKey" type="password"
-             autocomplete="current-password"
-             placeholder="کلید محرمانه را وارد کن">
-      <div class="row">
-        <button class="primary" id="connectBtn">ورود و دیدن درخواست‌ها</button>
-        <button class="secondary" id="refreshBtn">تازه‌سازی</button>
-      </div>
-      <div class="message" id="message" role="status"></div>
-      <p class="muted">
-        کلید مدیریت را به مشتریان نده و آن را در کد عمومی GitHub ننویس.
-        پرداخت را قبل از فعال‌سازی در حساب دریافت‌کننده بررسی کن.
-      </p>
-    </section>
+<main>
+  <section class="panel">
+    <h2>ورود مدیر</h2>
+    <p class="muted">
+      کلید مدیر همان مقدار DOKANYAAR_ADMIN_KEY در تنظیمات Vercel است.
+    </p>
+    <label for="adminKey">کلید مدیر</label>
+    <input id="adminKey" type="password"
+      autocomplete="current-password"
+      placeholder="کلید مدیر را وارد کنید">
+    <button class="primary" id="loadBtn">نمایش درخواست‌ها</button>
+    <button class="secondary" id="clearBtn">پاک‌کردن کلید</button>
+    <div id="message" role="status"></div>
+  </section>
 
-    <section>
-      <h2>درخواست‌های پرداخت در انتظار</h2>
-      <div id="payments">
-        <div class="panel muted">برای دریافت درخواست‌ها، ابتدا وارد مدیریت شو.</div>
-      </div>
-    </section>
-  </main>
+  <section>
+    <h2>درخواست‌ها</h2>
+    <p class="muted">
+      تأیید درخواست، اشتراک را دایمی و رایگان فعال می‌کند.
+      برای رد درخواست، نوشتن دلیل الزامی است.
+    </p>
+    <div id="requests"></div>
+  </section>
+</main>
 
-  <script>
-    const API = "/api";
-    const keyInput = document.getElementById("adminKey");
-    const message = document.getElementById("message");
-    const paymentsBox = document.getElementById("payments");
-    const connectBtn = document.getElementById("connectBtn");
-    const refreshBtn = document.getElementById("refreshBtn");
+<script>
+  const API = "/api/activation";
+  const keyInput = document.getElementById("adminKey");
+  const list = document.getElementById("requests");
+  const message = document.getElementById("message");
 
-    let busy = false;
+  function showMessage(text, error = false) {
+    message.textContent = text;
+    message.style.color = error ? "#b42318" : "#176b43";
+  }
 
-    function setMessage(text, isError = false) {
-      message.textContent = text;
-      message.style.color = isError ? "#b42318" : "#176b43";
-    }
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
 
-    function escapeHTML(value) {
-      return String(value ?? "").replace(/[&<>"']/g, ch => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[ch]);
-    }
-
-    async function apiRequest(path, method = "GET", body = null) {
-      const key = keyInput.value.trim();
-      if (!key) throw new Error("ابتدا کلید مدیریت را وارد کن.");
-
-      const options = {
-        method,
+  async function api(path, options = {}) {
+    const response = await fetch(
+      API + "?path=" + encodeURIComponent(path),
+      {
+        ...options,
         headers: {
-          "x-admin-key": key,
-          "Accept": "application/json"
+          "Content-Type": "application/json",
+          "X-Admin-Key": keyInput.value.trim(),
+          ...(options.headers || {})
         }
-      };
-
-      if (body !== null) {
-        options.headers["Content-Type"] = "application/json";
-        options.body = JSON.stringify(body);
       }
+    );
 
-      const response = await fetch(API + path, options);
-      const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || data.success === false) {
-        throw new Error(data.error || data.message || ("خطای سرور: " + response.status));
-      }
+    if (!response.ok || data.success === false) {
+      throw new Error(data.error || "درخواست ناموفق بود.");
+    }
+    return data;
+  }
 
-      return data;
+  function statusLabel(status) {
+    const labels = {
+      pending: ["در انتظار بررسی", ""],
+      approved: ["تأیید شده", "approved"],
+      rejected: ["رد شده", "rejected"]
+    };
+    return labels[status] || [status || "نامشخص", ""];
+  }
+
+  async function loadRequests() {
+    const key = keyInput.value.trim();
+
+    if (!key) {
+      showMessage("ابتدا کلید مدیر را وارد کنید.", true);
+      return;
     }
 
-    function detail(label, value) {
-      return `<div class="detail">
-        <small>${escapeHTML(label)}</small>
-        <strong>${escapeHTML(value || "—")}</strong>
-      </div>`;
-    }
+    list.textContent = "در حال بارگذاری...";
+    showMessage("");
 
-    function renderPayments(rows) {
-      paymentsBox.replaceChildren();
+    try {
+      const data = await api("admin/activation-requests");
+      const requests = data.requests || [];
 
-      if (!rows.length) {
-        const empty = document.createElement("div");
-        empty.className = "panel";
-        empty.textContent = "در حال حاضر درخواست پرداخت در انتظار وجود ندارد.";
-        paymentsBox.appendChild(empty);
+      if (!requests.length) {
+        list.textContent = "هنوز درخواستی ثبت نشده است.";
+        showMessage("ارتباط با API موفق بود.");
         return;
       }
 
-      rows.forEach(payment => {
-        const card = document.createElement("article");
-        card.className = "payment";
+      list.innerHTML = requests.map(item => {
+        const status = statusLabel(item.status);
+        const date = item.requested_at
+          ? new Date(item.requested_at).toLocaleString("fa-AF")
+          : "نامشخص";
 
-        const createdAt = payment.created_at
-          ? new Date(payment.created_at).toLocaleString("fa-AF")
-          : "—";
-
-        card.innerHTML = `
-          <h3>${escapeHTML(payment.shop_name || "دوکان بدون نام")}</h3>
-          <p class="status">وضعیت: در انتظار بررسی</p>
-          <div class="details">
-            ${detail("شناسه پرداخت", payment.payment_id)}
-            ${detail("شناسه دوکان", payment.shop_id)}
-            ${detail("صاحب دوکان", payment.owner_name)}
-            ${detail("نام کاربری", payment.username)}
-            ${detail("مبلغ ثبت‌شده در سیستم", Number(payment.amount_afn || 0) + " افغانی")}
-            ${detail("شناسه/مرجع پرداخت", payment.reference)}
-            ${detail("یادداشت مشتری", payment.note)}
-            ${detail("تاریخ درخواست", createdAt)}
-          </div>
-          <div class="row">
-            <button class="primary approve-btn">تأیید پرداخت و فعال‌سازی</button>
-          </div>
-          <p class="muted">
-            فقط پس از تأیید دریافت واقعی پول، دکمه فعال‌سازی را بزن.
-            این نسخه اشتراک Pro را طبق تنظیمات فعلی سرور برای ۳۰ روز فعال می‌کند.
-          </p>
+        return `
+          <article class="request">
+            <h3>درخواست شماره ${escapeHTML(item.id)}</h3>
+            <p><b>نام دوکان:</b> ${escapeHTML(item.shop_name || "ثبت نشده")}</p>
+            <p><b>صاحب دوکان:</b> ${escapeHTML(item.owner_name || item.full_name || "ثبت نشده")}</p>
+            <p><b>ایمیل:</b> ${escapeHTML(item.email || "ثبت نشده")}</p>
+            <p><b>تاریخ درخواست:</b> ${escapeHTML(date)}</p>
+            <p><b>وضعیت:</b>
+              <span class="status ${status[1]}">${escapeHTML(status[0])}</span>
+            </p>
+            ${item.admin_note
+              ? `<p><b>یادداشت مدیر:</b> ${escapeHTML(item.admin_note)}</p>`
+              : ""}
+            ${item.status === "pending" ? `
+              <label for="reason-${item.id}">دلیل رد (هنگام رد الزامی است)</label>
+              <textarea id="reason-${item.id}" rows="2"
+                placeholder="اگر درخواست را رد می‌کنید، دلیل را بنویسید"></textarea>
+              <div class="actions">
+                <button class="approve"
+                  onclick="reviewRequest(${Number(item.id)}, 'approve')">
+                  تأیید و فعال‌سازی رایگان
+                </button>
+                <button class="reject"
+                  onclick="reviewRequest(${Number(item.id)}, 'reject')">
+                  رد درخواست
+                </button>
+              </div>
+            ` : ""}
+          </article>
         `;
+      }).join("");
 
-        card.querySelector(".approve-btn").addEventListener("click", async event => {
-          const button = event.currentTarget;
-          const confirmed = confirm(
-            "آیا دریافت واقعی پرداخت را بررسی کرده‌ای؟\n" +
-            "اگر مطمئن هستی، اشتراک این دوکان فعال می‌شود."
-          );
-          if (!confirmed) return;
-
-          button.disabled = true;
-          try {
-            const result = await apiRequest(
-              "/admin/activate-subscription",
-              "POST",
-              {
-                shop_id: Number(payment.shop_id),
-                payment_id: Number(payment.payment_id),
-                reference: payment.reference || ""
-              }
-            );
-
-            alert(result.message || "اشتراک فعال شد.");
-            await loadPayments();
-          } catch (error) {
-            alert(error.message || "فعال‌سازی انجام نشد.");
-            button.disabled = false;
-          }
-        });
-
-        paymentsBox.appendChild(card);
-      });
+      showMessage("درخواست‌ها بارگذاری شدند: " + requests.length);
+    } catch (error) {
+      list.textContent = "";
+      showMessage(error.message, true);
     }
+  }
 
-    async function loadPayments() {
-      if (busy) return;
-      busy = true;
-      connectBtn.disabled = true;
-      refreshBtn.disabled = true;
-      setMessage("در حال دریافت درخواست‌ها…");
+  async function reviewRequest(id, decision) {
+    let reason = "";
 
-      try {
-        const data = await apiRequest("/admin/pending-payments");
-        renderPayments(Array.isArray(data.payments) ? data.payments : []);
-        setMessage("اتصال موفق بود.");
-      } catch (error) {
-        setMessage(error.message || "دریافت درخواست‌ها ناموفق بود.", true);
-        paymentsBox.replaceChildren();
-        const errorBox = document.createElement("div");
-        errorBox.className = "panel";
-        errorBox.textContent =
-          "درخواست‌ها بارگذاری نشدند. کلید مدیریت، مسیر API و انتشار آخرین تغییرات را بررسی کن.";
-        paymentsBox.appendChild(errorBox);
-      } finally {
-        busy = false;
-        connectBtn.disabled = false;
-        refreshBtn.disabled = false;
+    if (decision === "approve") {
+      if (!confirm("آیا می‌خواهید این حساب را دایمی و رایگان فعال کنید؟")) {
+        return;
+      }
+    } else {
+      const field = document.getElementById("reason-" + id);
+      reason = field ? field.value.trim() : "";
+
+      if (!reason) {
+        showMessage("برای رد درخواست، دلیل را بنویسید.", true);
+        if (field) field.focus();
+        return;
+      }
+
+      if (!confirm("آیا از رد این درخواست مطمئن هستید؟")) {
+        return;
       }
     }
 
-    connectBtn.addEventListener("click", loadPayments);
-    refreshBtn.addEventListener("click", loadPayments);
-  </script>
+    try {
+      const result = await api("admin/review-activation", {
+        method: "POST",
+        body: JSON.stringify({
+          request_id: id,
+          decision,
+          reason
+        })
+      });
+
+      showMessage(result.message || "عملیات انجام شد.");
+      await loadRequests();
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+  }
+
+  document.getElementById("loadBtn").addEventListener("click", loadRequests);
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    keyInput.value = "";
+    list.textContent = "";
+    showMessage("کلید از این صفحه پاک شد.");
+  });
+
+  keyInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") loadRequests();
+  });
+</script>
 </body>
 </html>
