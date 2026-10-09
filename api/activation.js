@@ -1,4 +1,3 @@
-
 const { Pool } = require("pg");
 
 const pool = new Pool({
@@ -11,48 +10,27 @@ const pool = new Pool({
   max: 3,
 });
 
-const send = (res, status, data) => res.status(status).json(data);
-
-function getBody(req) {
-  return req.body && typeof req.body === "object" ? req.body : {};
+function send(res, status, data) {
+  return res.status(status).json(data);
 }
 
 function getPath(req) {
   const url = new URL(req.url, "https://local.invalid");
-  const path = url.searchParams.get("path");
-  return "/" + String(path || "").replace(/^\/+|\/+$/g, "");
+  return "/" + String(url.searchParams.get("path") || "")
+    .replace(/^\/+|\/+$/g, "");
 }
 
-async function getUser(req) {
-  const authorization = req.headers.authorization || "";
-  const authToken = authorization.startsWith("Bearer ")
-    ? authorization.slice(7)
-    : req.headers["x-auth-token"];
-
-  if (!authToken) return null;
-
-  const result = await pool.query(
-    `SELECT u.id, u.shop_id, u.email, u.email_verified,
-            u.full_name, u.role, u.token,
-            s.name AS shop_name
-     FROM users u
-     JOIN shops s ON s.id = u.shop_id
-     WHERE u.token = $1
-     LIMIT 1`,
-    [authToken]
-  );
-
-  return result.rows[0] || null;
+function getBody(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  return {};
 }
 
 async function setup() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activation_requests (
       id SERIAL PRIMARY KEY,
-      shop_id INTEGER NOT NULL
-        REFERENCES shops(id) ON DELETE CASCADE,
-      user_id INTEGER
-        REFERENCES users(id) ON DELETE SET NULL,
+      shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'approved', 'rejected')),
       admin_note TEXT NOT NULL DEFAULT '',
@@ -69,11 +47,29 @@ async function setup() {
   `);
 }
 
-function checkAdmin(req) {
-  const secret = process.env.DOKANYAAR_ADMIN_KEY;
+function isAdmin(req) {
+  const expected = process.env.DOKANYAAR_ADMIN_KEY;
   const supplied = req.headers["x-admin-key"];
+  return Boolean(expected && supplied && supplied === expected);
+}
 
-  return Boolean(secret && supplied && supplied === secret);
+async function getUser(req) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : req.headers["x-auth-token"];
+
+  if (!token) return null;
+
+  const result = await pool.query(
+    `SELECT u.id, u.shop_id, u.email, u.email_verified
+     FROM users u
+     WHERE u.token = $1
+     LIMIT 1`,
+    [token]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function handler(req, res) {
@@ -84,15 +80,12 @@ async function handler(req, res) {
 
   await setup();
 
-  // مدیر: دیدن درخواست‌های فعال‌سازی
-  if (
-    method === "GET" &&
-    path === "/admin/activation-requests"
-  ) {
-    if (!checkAdmin(req)) {
+  // مسیرهای مدیر: قبل از بررسی ورود مشتری
+  if (path === "/admin/activation-requests" && method === "GET") {
+    if (!isAdmin(req)) {
       return send(res, 403, {
         success: false,
-        error: "کلید مدیر نادرست است.",
+        error: "کلید مدیر نادرست است یا در Vercel تنظیم نشده است.",
       });
     }
 
@@ -116,24 +109,20 @@ async function handler(req, res) {
     });
   }
 
-  // مدیر: تأیید یا رد درخواست
-  if (
-    method === "POST" &&
-    path === "/admin/review-activation"
-  ) {
-    if (!checkAdmin(req)) {
+  if (path === "/admin/review-activation" && method === "POST") {
+    if (!isAdmin(req)) {
       return send(res, 403, {
         success: false,
-        error: "کلید مدیر نادرست است.",
+        error: "کلید مدیر نادرست است یا در Vercel تنظیم نشده است.",
       });
     }
 
     const body = getBody(req);
-    const requestId = Number(body.request_id);
-    const decision = String(body.decision || "").trim();
+    const id = Number(body.request_id);
+    const decision = String(body.decision || "");
     const reason = String(body.reason || "").trim().slice(0, 1000);
 
-    if (!Number.isInteger(requestId) || requestId < 1) {
+    if (!Number.isInteger(id) || id < 1) {
       return send(res, 400, {
         success: false,
         error: "شماره درخواست معتبر نیست.",
@@ -143,14 +132,14 @@ async function handler(req, res) {
     if (!["approve", "reject"].includes(decision)) {
       return send(res, 400, {
         success: false,
-        error: "تصمیم باید approve یا reject باشد.",
+        error: "تصمیم نامعتبر است.",
       });
     }
 
     if (decision === "reject" && !reason) {
       return send(res, 400, {
         success: false,
-        error: "برای رد درخواست، نوشتن دلیل الزامی است.",
+        error: "برای رد درخواست، دلیل بنویسید.",
       });
     }
 
@@ -160,9 +149,8 @@ async function handler(req, res) {
       await client.query("BEGIN");
 
       const found = await client.query(
-        `SELECT * FROM activation_requests
-         WHERE id = $1 FOR UPDATE`,
-        [requestId]
+        "SELECT * FROM activation_requests WHERE id = $1 FOR UPDATE",
+        [id]
       );
 
       if (!found.rowCount) {
@@ -192,41 +180,33 @@ async function handler(req, res) {
              plan = 'permanent',
              status = 'active',
              amount_usdt = 0,
-             starts_at = COALESCE(
-               subscriptions.starts_at, NOW()
-             ),
+             starts_at = COALESCE(subscriptions.starts_at, NOW()),
              expires_at = NULL`,
           [request.shop_id]
         );
-
-        await client.query(
-          `UPDATE activation_requests
-           SET status = 'approved',
-               admin_note = $1,
-               reviewed_at = NOW()
-           WHERE id = $2`,
-          [reason || "فعال‌سازی رایگان تأیید شد.", requestId]
-        );
-      } else {
-        await client.query(
-          `UPDATE activation_requests
-           SET status = 'rejected',
-               admin_note = $1,
-               reviewed_at = NOW()
-           WHERE id = $2`,
-          [reason, requestId]
-        );
       }
+
+      await client.query(
+        `UPDATE activation_requests
+         SET status = $1, admin_note = $2, reviewed_at = NOW()
+         WHERE id = $3`,
+        [
+          decision === "approve" ? "approved" : "rejected",
+          decision === "approve"
+            ? (reason || "فعال‌سازی دایمی رایگان تأیید شد.")
+            : reason,
+          id,
+        ]
+      );
 
       await client.query("COMMIT");
 
       return send(res, 200, {
         success: true,
         status: decision === "approve" ? "approved" : "rejected",
-        message:
-          decision === "approve"
-            ? "فعال‌سازی دایمی رایگان تأیید شد."
-            : "درخواست رد شد و دلیل ثبت گردید.",
+        message: decision === "approve"
+          ? "فعال‌سازی دایمی رایگان تأیید شد."
+          : "درخواست رد شد و دلیل ثبت گردید.",
       });
     } catch (error) {
       await client.query("ROLLBACK");
@@ -236,13 +216,13 @@ async function handler(req, res) {
     }
   }
 
-  // از این‌جا به بعد، مشتری باید وارد حساب خود شده باشد.
+  // مسیرهای مشتری
   const user = await getUser(req);
 
   if (!user) {
     return send(res, 401, {
       success: false,
-      error: "ابتدا وارد حساب دوکان‌یار شوید.",
+      error: "لطفاً وارد حساب شوید.",
     });
   }
 
@@ -253,27 +233,18 @@ async function handler(req, res) {
     });
   }
 
-  // مشتری: ثبت درخواست فعال‌سازی رایگان
   if (method === "POST" && path === "/activation-request") {
     const client = await pool.connect();
 
     try {
       await client.query("BEGIN");
 
-      await client.query(
-        "SELECT id FROM shops WHERE id = $1 FOR UPDATE",
-        [user.shop_id]
-      );
-
-      const subscription = await client.query(
+      const active = await client.query(
         "SELECT status FROM subscriptions WHERE shop_id = $1",
         [user.shop_id]
       );
 
-      if (
-        subscription.rowCount &&
-        subscription.rows[0].status === "active"
-      ) {
+      if (active.rowCount && active.rows[0].status === "active") {
         await client.query("COMMIT");
         return send(res, 200, {
           success: true,
@@ -296,7 +267,7 @@ async function handler(req, res) {
           success: true,
           status: "pending",
           request: pending.rows[0],
-          message: "درخواست شما قبلاً ثبت شده و منتظر بررسی مدیر است.",
+          message: "درخواست شما در انتظار بررسی مدیر است.",
         });
       }
 
@@ -308,7 +279,6 @@ async function handler(req, res) {
       );
 
       await client.query("COMMIT");
-
       return send(res, 201, {
         success: true,
         status: "pending",
@@ -323,28 +293,25 @@ async function handler(req, res) {
     }
   }
 
-  // مشتری: دیدن وضعیت درخواست
   if (method === "GET" && path === "/activation-status") {
-    const result = await pool.query(
-      `SELECT id, status, admin_note, requested_at, reviewed_at
-       FROM activation_requests
-       WHERE shop_id = $1
-       ORDER BY id DESC
-       LIMIT 1`,
-      [user.shop_id]
-    );
-
-    const subscription = await pool.query(
-      `SELECT plan, status, amount_usdt, starts_at, expires_at
-       FROM subscriptions
-       WHERE shop_id = $1
-       LIMIT 1`,
-      [user.shop_id]
-    );
+    const [request, subscription] = await Promise.all([
+      pool.query(
+        `SELECT id, status, admin_note, requested_at, reviewed_at
+         FROM activation_requests
+         WHERE shop_id = $1
+         ORDER BY id DESC LIMIT 1`,
+        [user.shop_id]
+      ),
+      pool.query(
+        `SELECT plan, status, amount_usdt, starts_at, expires_at
+         FROM subscriptions WHERE shop_id = $1 LIMIT 1`,
+        [user.shop_id]
+      ),
+    ]);
 
     return send(res, 200, {
       success: true,
-      request: result.rows[0] || null,
+      request: request.rows[0] || null,
       subscription: subscription.rows[0] || null,
     });
   }
@@ -361,10 +328,7 @@ module.exports = async (req, res) => {
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization, X-Auth-Token, X-Admin-Key"
   );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,OPTIONS"
-  );
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
 
   try {
     return await handler(req, res);
@@ -372,7 +336,7 @@ module.exports = async (req, res) => {
     console.error("DokanYar activation error:", error);
     return send(res, 500, {
       success: false,
-      error: "خطای سرور در سیستم فعال‌سازی. لاگ Vercel را بررسی کنید.",
+      error: "خطای سرور در فعال‌سازی. لاگ Vercel را بررسی کنید.",
     });
   }
 };
