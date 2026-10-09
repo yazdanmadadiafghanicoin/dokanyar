@@ -309,12 +309,24 @@ async function loadTransactions(){
   </table></div>`;
 }
 $("registerBtn").addEventListener("click",()=>runButton($("registerBtn"),async()=>{
-  const body={
-    full_name:$("fullName").value.trim(),
-    shop_name:$("shopName").value.trim(),
-    email:$("regEmail").value.trim(),
-    password:$("regPassword").value
-  };
+const body={
+full_name:$("fullName").value.trim(),
+shop_name:$("shopName").value.trim(),
+email:$("regEmail").value.trim().toLowerCase(),
+password:$("regPassword").value
+};
+
+if(!body.full_name) throw Error("نام صاحب دوکان را وارد کن.");
+if(!body.shop_name) throw Error("نام دوکان را وارد کن.");
+if(!body.email) throw Error("ایمیل را وارد کن.");
+if(body.password.length < 8) throw Error("رمز عبور باید حداقل ۸ حرف باشد.");
+
+const data=await call("/register","POST",body);
+
+$("verifyEmail").value=body.email;
+$("verifyCard").classList.remove("hidden");
+message(data.message || "حساب ساخته شد. ایمیل خود را برای کد تأیید بررسی کن.");
+}));
   if(!body.full_name||!body.shop_name||!body.email||!body.password)throw Error("تمام خانه‌های ثبت‌نام را پُر کن.");
   const data=await call("/register","POST",body);
   $("verifyEmail").value=body.email;
