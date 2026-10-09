@@ -2,460 +2,193 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#10251f">
-<title>دوکان‌یار | مدیریت دوکان</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مدیریت دوکان‌یار</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f2f5f4;color:#172b25}
-header{background:#10251f;color:#fff;padding:18px}
-.wrap{max-width:950px;margin:auto;padding:14px}
-.brand{font-size:24px;font-weight:bold}
-.brand span{color:#69e0ad}
-.sub{font-size:12px;color:#bdcec6;margin-top:7px}
-.card{background:#fff;border:1px solid #e0e8e4;border-radius:15px;padding:17px;margin:12px 0;box-shadow:0 3px 12px #10251f08}
-h2{font-size:18px;margin:0 0 15px}
-h3{font-size:15px}
-label{font-size:13px;display:block;margin-top:9px;color:#42564d}
-input,textarea,select{width:100%;padding:12px;border:1px solid #d2ddd7;border-radius:9px;margin:6px 0;font:inherit;background:white;min-width:0}
-button{background:#14734e;color:#fff;border:0;border-radius:9px;padding:11px 14px;font:inherit;cursor:pointer}
-button:disabled{opacity:.6}
-.secondary{background:#e5f4eb;color:#126441}
-.dark{background:#344b42}
-.danger{background:#fff0ef;color:#b42318}
-.full{width:100%;margin-top:10px}
-.row{display:flex;gap:9px;flex-wrap:wrap}
-.row>*{flex:1}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
-.stat{background:#f7faf8;border:1px solid #e0e8e4;border-radius:11px;padding:13px;overflow-wrap:anywhere}
-.stat strong{display:block;font-size:21px;margin-top:7px}
-.muted{font-size:12px;color:#718078;line-height:1.8}
-.tabs{display:flex;gap:7px;overflow-x:auto;margin:12px 0}
-.tabs button{white-space:nowrap;background:#e1e9e4;color:#244337}
-.tabs button.active{background:#14734e;color:white}
-.hidden{display:none!important}
-.item{padding:13px 0;border-bottom:1px solid #e5ece8}
-.item:last-child{border-bottom:0}
-.notice{background:#fff6df;color:#76500b;padding:13px;border-radius:10px;line-height:1.9;font-size:13px}
-.msg{padding:12px;border-radius:10px;line-height:1.8;margin:12px 0}
-.ok{background:#e5f8ed;color:#126441}
-.err{background:#fff0ef;color:#b42318}
-footer{text-align:center;color:#718078;font-size:12px;padding:22px}
-@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.brand{font-size:21px}.card{padding:14px}}
+body{margin:0;background:#f3f6f4;color:#18271f;font-family:Tahoma,Arial,sans-serif}
+header{background:#102b20;color:white;padding:22px 16px}
+header h1{margin:0 0 8px;font-size:23px}
+header p{margin:0;color:#d1e2d7;font-size:13px}
+main{max-width:900px;margin:auto;padding:16px}
+.panel,.payment{background:white;border:1px solid #dce6df;border-radius:14px;padding:16px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 14px}
+label{display:block;font-size:13px;margin-bottom:7px}
+input{width:100%;padding:13px;border:1px solid #ccd9d0;border-radius:9px;margin-bottom:12px;font-size:15px}
+button{padding:12px 15px;border:0;border-radius:9px;font-weight:bold;font-size:14px;cursor:pointer}
+button:disabled{opacity:.5}
+.primary{background:#147c4e;color:white}
+.secondary{background:#e8efe9;color:#173c2b}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1}
+.message{font-size:13px;line-height:1.8;margin-top:12px;overflow-wrap:anywhere}
+.muted{font-size:12px;line-height:1.8;color:#68766e}
+.details{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.detail{padding:10px;background:#f5f8f6;border-radius:8px;overflow-wrap:anywhere}
+.detail small{display:block;color:#68766e;margin-bottom:6px}
+.detail strong{font-size:13px}
+.payment h3{margin:0 0 10px;font-size:17px}
+.status{color:#9b6100;font-size:12px}
+@media(max-width:480px){.details{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
- <div class="wrap" style="padding:0">
-  <div class="brand">🛍️ دوکان<span>یار</span></div>
-  <div class="sub">مدیریت کالا، خریدوفروش و حساب‌وکتاب دوکان</div>
- </div>
+<h1>مدیریت دوکان‌یار</h1>
+<p>بررسی پرداخت‌ها و فعال‌سازی حساب مشتریان</p>
 </header>
 
-<main class="wrap">
- <div id="message" class="msg hidden"></div>
+<main>
+<section class="panel">
+<h2>ورود مدیر</h2>
+<label for="adminKey">کلید محرمانه مدیریت</label>
+<input id="adminKey" type="password"
+autocomplete="current-password"
+placeholder="DOKANYAAR_ADMIN_KEY">
+<div class="row">
+<button class="primary" id="load">ورود و نمایش درخواست‌ها</button>
+<button class="secondary" id="refresh">تازه‌سازی</button>
+</div>
+<div id="message" class="message" role="status"></div>
+<p class="muted">کلید مدیریت را به مشتریان نده و در کد HTML ذخیره نکن.</p>
+</section>
 
- <section id="auth">
-  <div class="card">
-   <h2>ورود به دوکان‌یار</h2>
-   <div class="tabs">
-    <button id="tabLogin" class="active" onclick="authMode('login')">ورود</button>
-    <button id="tabRegister" onclick="authMode('register')">ثبت‌نام</button>
-   </div>
-   <form id="loginForm">
-    <label>ایمیل</label>
-    <input name="email" type="email" required autocomplete="email" placeholder="ایمیل شما">
-    <label>رمز عبور</label>
-    <input name="password" type="password" required autocomplete="current-password">
-    <button class="full">ورود به حساب</button>
-   </form>
-   <form id="registerForm" class="hidden">
-    <label>نام صاحب دوکان</label>
-    <input name="full_name" required maxlength="100">
-    <label>نام دوکان</label>
-    <input name="shop_name" required maxlength="120">
-    <label>ایمیل</label>
-    <input name="email" type="email" required autocomplete="email">
-    <label>رمز عبور (حداقل ۸ حرف)</label>
-    <input name="password" type="password" minlength="8" required autocomplete="new-password">
-    <button class="full">ثبت‌نام و ارسال کد ایمیل</button>
-   </form>
-  </div>
-
-  <div id="verifyCard" class="card hidden">
-   <h2>تأیید ایمیل</h2>
-   <p class="muted">کد ارسال‌شده به ایمیل خود را وارد کن.</p>
-   <form id="verifyForm">
-    <label>ایمیل</label>
-    <input name="email" type="email" required>
-    <label>کد تأیید</label>
-    <input name="code" required inputmode="numeric" maxlength="12">
-    <button class="full">تأیید ایمیل</button>
-   </form>
-   <button class="secondary full" onclick="resendCode()">ارسال دوباره کد</button>
-  </div>
- </section>
-
- <section id="app" class="hidden">
-  <div class="card">
-   <div class="row">
-    <div><h2 id="welcome">حساب دوکان</h2><div id="emailLabel" class="muted"></div></div>
-    <button class="dark" onclick="logout()">خروج</button>
-   </div>
-   <div class="grid">
-    <div class="stat"><span class="muted">تعداد کالاها</span><strong id="countProducts">۰</strong></div>
-    <div class="stat"><span class="muted">تعداد فروش‌ها</span><strong id="countSales">۰</strong></div>
-    <div class="stat"><span class="muted">سود ثبت‌شده</span><strong id="countProfit">۰</strong></div>
-   </div>
-   <p class="muted">سود نشان‌داده‌شده بر اساس اطلاعات معاملات ثبت‌شده در سرور است.</p>
-  </div>
-
-  <div id="paymentCard" class="card">
-   <h2>فعال‌سازی حساب دایمی</h2>
-   <div class="notice">
-    هزینه ثبت‌نام و استفاده دایمی: <b>۱۰ USDT، فقط یک‌بار</b>.<br>
-    پس از پرداخت، درخواستت را بفرست تا مدیر پرداخت را بررسی و حساب را فعال کند.
-   </div>
-   <div class="stat" style="margin-top:12px">
-    <div class="muted">شناسه دریافت Binance Pay</div>
-    <strong style="direction:ltr;text-align:right">915161798</strong>
-    <button class="secondary" onclick="copyPay()">کاپی شناسه</button>
-   </div>
-   <form id="paymentForm">
-    <label>شماره مرجع تراکنش</label>
-    <input name="reference" required maxlength="180" placeholder="شناسه تراکنش واقعی">
-    <label>یادداشت (اختیاری)</label>
-    <input name="note" maxlength="300" placeholder="توضیحات">
-    <button class="full">ارسال درخواست پرداخت</button>
-   </form>
-   <div id="paymentMessage" class="muted"></div>
-   <p class="muted">واردکردن شناسه پرداخت به‌تنهایی به معنی تأیید پرداخت نیست. لطفاً فقط پس از پرداخت واقعی درخواست بفرست.</p>
-  </div>
-
-  <div id="features" class="hidden">
-   <div class="tabs" id="nav">
-    <button class="active" data-page="productsPage">کالاها</button>
-    <button data-page="transactionsPage">خریدوفروش</button>
-    <button data-page="workersPage">کارمندان</button>
-    <button data-page="shopPage">تنظیمات دوکان</button>
-   </div>
-
-   <section id="productsPage">
-    <div class="card">
-     <h2>افزودن کالا</h2>
-     <form id="productForm">
-      <label>نام کالا</label>
-      <input name="name" required maxlength="150">
-      <div class="row">
-       <div><label>قیمت خرید</label><input name="buy_price" type="number" min="0" step=".01" required></div>
-       <div><label>قیمت فروش</label><input name="sell_price" type="number" min="0" step=".01" required></div>
-      </div>
-      <div class="row">
-       <div><label>تعداد</label><input name="quantity" type="number" min="0" step="1" required></div>
-       <div><label>واحد</label><input name="unit" maxlength="30" placeholder="عدد، بسته..."></div>
-      </div>
-      <button class="full">ذخیره کالا</button>
-     </form>
-    </div>
-    <div class="card">
-     <h2>فهرست کالاها</h2>
-     <div id="productsList">در حال بارگذاری...</div>
-     <button class="secondary full" onclick="loadProducts()">تازه‌سازی کالاها</button>
-    </div>
-   </section>
-
-   <section id="transactionsPage" class="hidden">
-    <div class="card">
-     <h2>ثبت خرید یا فروش</h2>
-     <label>انتخاب کالا</label>
-     <select id="txProduct"><option value="">انتخاب کالا</option></select>
-     <label>تعداد</label>
-     <input id="txQuantity" type="number" min="1" step="1" value="1">
-     <div class="row">
-      <button onclick="transact('buy')">خرید کالا</button>
-      <button onclick="transact('sell')">فروش کالا</button>
-     </div>
-     <p class="muted">خرید، موجودی را افزایش می‌دهد و فروش، موجودی را کاهش می‌دهد.</p>
-    </div>
-    <div class="card">
-     <h2>تاریخچه معاملات</h2>
-     <div id="transactionsList"></div>
-     <button class="secondary full" onclick="loadTransactions()">تازه‌سازی تاریخچه</button>
-    </div>
-   </section>
-
-   <section id="workersPage" class="hidden">
-    <div class="card">
-     <h2>افزودن کارمند</h2>
-     <form id="workerForm">
-      <label>نام کارمند</label><input name="name" required maxlength="100">
-      <label>شماره تماس یا ایمیل</label><input name="contact" maxlength="150">
-      <button class="full">افزودن کارمند</button>
-     </form>
-    </div>
-    <div class="card">
-     <h2>فهرست کارمندان</h2>
-     <div id="workersList"></div>
-     <button class="secondary full" onclick="loadWorkers()">تازه‌سازی</button>
-    </div>
-   </section>
-
-   <section id="shopPage" class="hidden">
-    <div class="card">
-     <h2>تنظیمات دوکان</h2>
-     <form id="shopForm">
-      <label>نام دوکان</label><input name="name" required maxlength="120">
-      <label>نام صاحب دوکان</label><input name="owner_name" maxlength="100">
-      <label>شماره تماس</label><input name="phone" maxlength="40">
-      <label>آدرس</label><textarea name="address" maxlength="300"></textarea>
-      <button class="full">ذخیره تنظیمات</button>
-     </form>
-    </div>
-   </section>
-  </div>
- </section>
+<h2>درخواست‌های پرداخت</h2>
+<div id="payments">
+<div class="panel muted">ابتدا وارد مدیریت شو.</div>
+</div>
 </main>
-<footer>دوکان‌یار | مدیریت ساده و منظم دوکان</footer>
 
 <script>
 const API="/api";
-let token=localStorage.getItem("dokanyar_token")||"";
-let products=[];
+const keyInput=document.getElementById("adminKey");
+const message=document.getElementById("message");
+const paymentsBox=document.getElementById("payments");
+const loadButton=document.getElementById("load");
+const refreshButton=document.getElementById("refresh");
+let busy=false;
 
-const $=id=>document.getElementById(id);
-const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const fmt=v=>Number(v||0).toLocaleString("en-US",{maximumFractionDigits:2});
-const values=form=>Object.fromEntries(new FormData(form).entries());
+function say(text,error=false){
+  message.textContent=text;
+  message.style.color=error?"#b42318":"#176b43";
+}
+function safe(value){
+  return String(value??"—").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  })[c]);
+}
+async function request(path,method="GET",body=null){
+  const key=keyInput.value.trim();
+  if(!key)throw Error("کلید مدیریت را وارد کن.");
+  const options={
+    method,
+    headers:{"x-admin-key":key,"Accept":"application/json"}
+  };
+  if(body!==null){
+    options.headers["Content-Type"]="application/json";
+    options.body=JSON.stringify(body);
+  }
+  const response=await fetch(API+path,options);
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.success===false){
+    throw Error(data.error||data.message||("خطای سرور "+response.status));
+  }
+  return data;
+}
+function field(label,value){
+  return `<div class="detail"><small>${safe(label)}</small><strong>${safe(value)}</strong></div>`;
+}
+function render(rows){
+  paymentsBox.replaceChildren();
+  if(!rows.length){
+    const empty=document.createElement("div");
+    empty.className="panel";
+    empty.textContent="درخواست پرداخت در انتظار وجود ندارد.";
+    paymentsBox.appendChild(empty);
+    return;
+  }
 
-function message(text,error=false){
- $("message").textContent=text;
- $("message").className="msg "+(error?"err":"ok");
- window.scrollTo({top:0,behavior:"smooth"});
-}
-async function api(path,options={}){
- const headers={...(options.headers||{})};
- if(options.body && typeof options.body==="string")headers["Content-Type"]="application/json";
- if(token)headers.Authorization="Bearer "+token;
- let res;
- try{res=await fetch(API+path,{...options,headers});}
- catch(e){throw Error("اتصال به سرور برقرار نشد؛ اینترنت و نشر Vercel را بررسی کن.");}
- let data={};
- try{data=await res.json();}catch(e){}
- if(!res.ok)throw Error(data.error||data.message||("خطای سرور "+res.status));
- return data;
-}
-function authMode(mode){
- $("loginForm").classList.toggle("hidden",mode!=="login");
- $("registerForm").classList.toggle("hidden",mode!=="register");
- $("tabLogin").classList.toggle("active",mode==="login");
- $("tabRegister").classList.toggle("active",mode==="register");
-}
-function showApp(user){
- $("auth").classList.add("hidden");
- $("app").classList.remove("hidden");
- $("welcome").textContent="سلام، "+(user.full_name||user.name||user.shop_name||"صاحب دوکان");
- $("emailLabel").textContent=user.email||"";
-}
-function resetAuth(){
- token="";
- localStorage.removeItem("dokanyar_token");
- $("auth").classList.remove("hidden");
- $("app").classList.add("hidden");
- $("verifyCard").classList.add("hidden");
-}
-async function logout(){
- try{await api("/logout",{method:"POST",body:"{}"});}catch(e){}
- resetAuth();message("از حساب خارج شدی.");
-}
-$("registerForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  const f=values(e.target);
-  await api("/register",{method:"POST",body:JSON.stringify(f)});
-  $("verifyForm").elements.email.value=f.email;
-  $("verifyCard").classList.remove("hidden");
-  message("ثبت‌نام انجام شد؛ کد تأیید را از ایمیل بگیر.");
- }catch(err){message(err.message,true);}
-});
-$("loginForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  const d=await api("/login",{method:"POST",body:JSON.stringify(values(e.target))});
-  if(d.token){token=d.token;localStorage.setItem("dokanyar_token",token);}
-  if(!token)throw Error("توکن ورود از سرور دریافت نشد.");
-  await loadMe();
-  message("ورود موفق بود.");
- }catch(err){message(err.message,true);}
-});
-$("verifyForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  const f=values(e.target);
-  const d=await api("/verify-email",{method:"POST",body:JSON.stringify(f)});
-  if(d.token){token=d.token;localStorage.setItem("dokanyar_token",token);}
-  if(token){await loadMe();message("ایمیل تأیید شد.");}
-  else{authMode("login");message("ایمیل تأیید شد؛ حالا وارد حساب شو.");}
- }catch(err){message(err.message,true);}
-});
-async function resendCode(){
- try{
-  const email=$("verifyForm").elements.email.value;
-  if(!email)throw Error("ایمیل را وارد کن.");
-  const d=await api("/resend-code",{method:"POST",body:JSON.stringify({email})});
-  message(d.message||"اگر ایمیل نیاز به تأیید داشته باشد، کد ارسال می‌شود.");
- }catch(err){message(err.message,true);}
-}
-async function loadMe(){
- const d=await api("/me");
- showApp(d.user||d);
- await loadSubscription();
-}
-async function loadSubscription(){
- try{
-  const d=await api("/subscription");
-  const s=d.subscription||d;
-  const active=s.status==="active"||s.active===true||s.is_active===true;
-  $("paymentCard").classList.toggle("hidden",active);
-  $("features").classList.toggle("hidden",!active);
-  $("paymentMessage").textContent=active?"حساب شما فعال است.":(s.status==="pending"?"درخواست پرداخت در انتظار بررسی مدیر است.":"حساب هنوز فعال نشده است.");
-  if(active)await loadAll();
- }catch(err){
-  $("paymentCard").classList.remove("hidden");
-  $("features").classList.add("hidden");
-  $("paymentMessage").textContent="بررسی وضعیت حساب ناموفق بود: "+err.message;
- }
-}
-function copyPay(){
- if(navigator.clipboard&&navigator.clipboard.writeText){
-  navigator.clipboard.writeText("915161798").then(()=>message("شناسه پرداخت کاپی شد.")).catch(()=>message("شناسه Binance Pay: 915161798"));
- }else message("شناسه Binance Pay: 915161798");
-}
-$("paymentForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  const f=values(e.target);
-  const d=await api("/upgrade-request",{method:"POST",body:JSON.stringify({reference:f.reference,note:f.note,amount:10,currency:"USDT"})});
-  $("paymentMessage").textContent=d.message||"درخواست پرداخت ثبت شد و منتظر بررسی مدیر است.";
-  message("درخواست ارسال شد؛ منتظر تأیید مدیر باش.");
- }catch(err){message(err.message,true);}
-});
-const pid=p=>p.id??p.product_id??p.productId;
-const pname=p=>p.name??p.product_name??"کالا";
-const qty=p=>Number(p.quantity??p.stock??0);
-const bp=p=>Number(p.buy_price??p.purchase_price??p.cost_price??0);
-const sp=p=>Number(p.sell_price??p.sale_price??p.price??0);
-async function loadProducts(){
- try{
-  const d=await api("/products");
-  products=Array.isArray(d)?d:(d.products||[]);
-  $("countProducts").textContent=fmt(products.length);
-  $("productsList").innerHTML=products.length?products.map(p=>`
-   <div class="item">
-    <b>${esc(pname(p))}</b>
-    <p class="muted">موجودی: ${fmt(qty(p))} ${esc(p.unit||"عدد")}</p>
-    <p>قیمت خرید: <b>${fmt(bp(p))}</b> | قیمت فروش: <b>${fmt(sp(p))}</b></p>
-    <button class="danger" onclick="deleteProduct('${encodeURIComponent(String(pid(p)))}')">حذف کالا</button>
-   </div>`).join(""):"هنوز کالایی ثبت نشده است.";
-  $("txProduct").innerHTML='<option value="">انتخاب کالا</option>'+products.map(p=>`<option value="${esc(pid(p))}">${esc(pname(p))} — موجودی ${fmt(qty(p))}</option>`).join("");
- }catch(err){$("productsList").textContent=err.message;}
-}
-$("productForm").addEventListener("submit",async e=>{
- e.preventDefault();
- const f=values(e.target);
- f.buy_price=Number(f.buy_price);f.sell_price=Number(f.sell_price);f.quantity=Number(f.quantity);
- try{
-  await api("/products",{method:"POST",body:JSON.stringify(f)});
-  e.target.reset();await loadProducts();message("کالا ذخیره شد.");
- }catch(err){message(err.message,true);}
-});
-async function deleteProduct(id){
- if(!confirm("این کالا حذف شود؟"))return;
- try{
-  await api("/products/"+decodeURIComponent(id),{method:"DELETE"});
-  await loadProducts();message("کالا حذف شد.");
- }catch(err){message(err.message,true);}
-}
-async function transact(type){
- const product_id=$("txProduct").value;
- const quantity=Number($("txQuantity").value);
- if(!product_id||!Number.isInteger(quantity)||quantity<1){message("کالا و تعداد معتبر انتخاب کن.",true);return;}
- try{
-  const d=await api(type==="buy"?"/buy":"/sell",{method:"POST",body:JSON.stringify({product_id,quantity})});
-  message(d.message||(type==="buy"?"خرید ثبت شد.":"فروش ثبت شد."));
-  await loadProducts();await loadTransactions();
- }catch(err){message(err.message,true);}
-}
-async function loadTransactions(){
- try{
-  const d=await api("/transactions");
-  const list=Array.isArray(d)?d:(d.transactions||[]);
-  $("transactionsList").innerHTML=list.length?list.map(t=>`
-   <div class="item">
-    <b>${esc(t.type||t.action||"معامله")}</b> — ${esc(t.product_name||t.name||"کالا")}
-    <p class="muted">تعداد: ${fmt(t.quantity)} | مبلغ: ${fmt(t.total??t.base_total??t.amount)}</p>
-    <p class="muted">${esc(t.created_at||t.date||"")}</p>
-   </div>`).join(""):"هنوز معامله‌ای ثبت نشده است.";
-  $("countSales").textContent=fmt(list.filter(t=>String(t.type||t.action||"").toLowerCase().includes("sell")).length);
-  $("countProfit").textContent=fmt(list.reduce((sum,t)=>sum+Number(t.profit||0),0));
- }catch(err){$("transactionsList").textContent=err.message;}
-}
-async function loadWorkers(){
- try{
-  const d=await api("/workers");
-  const list=Array.isArray(d)?d:(d.workers||[]);
-  $("workersList").innerHTML=list.length?list.map(w=>`
-   <div class="item"><b>${esc(w.name||w.full_name||"کارمند")}</b>
-   <p class="muted">${esc(w.contact||w.email||"")}</p>
-   <button class="danger" onclick="deleteWorker('${encodeURIComponent(String(w.id))}')">حذف کارمند</button></div>`).join(""):"هنوز کارمندی اضافه نشده است.";
- }catch(err){$("workersList").textContent=err.message;}
-}
-$("workerForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  await api("/workers",{method:"POST",body:JSON.stringify(values(e.target))});
-  e.target.reset();await loadWorkers();message("کارمند اضافه شد.");
- }catch(err){message(err.message,true);}
-});
-async function deleteWorker(id){
- if(!confirm("این کارمند حذف شود؟"))return;
- try{
-  await api("/workers/"+decodeURIComponent(id),{method:"DELETE"});
-  await loadWorkers();message("کارمند حذف شد.");
- }catch(err){message(err.message,true);}
-}
-async function loadShop(){
- try{
-  const d=await api("/shop");
-  const s=d.shop||d;
-  ["name","owner_name","phone","address"].forEach(k=>{
-   if($("shopForm").elements[k])$("shopForm").elements[k].value=s[k]||"";
+  rows.forEach(p=>{
+    const card=document.createElement("article");
+    card.className="payment";
+    const date=p.created_at
+      ?new Date(p.created_at).toLocaleString("fa-AF")
+      :"—";
+
+    card.innerHTML=`
+      <h3>${safe(p.shop_name||"دوکان بدون نام")}</h3>
+      <p class="status">وضعیت: در انتظار بررسی</p>
+      <div class="details">
+        ${field("شناسه پرداخت",p.payment_id)}
+        ${field("شناسه دوکان",p.shop_id)}
+        ${field("صاحب دوکان",p.owner_name)}
+        ${field("نام کاربری",p.username)}
+        ${field("مبلغ ثبت‌شده",Number(p.amount_afn||0)+" افغانی")}
+        ${field("مرجع پرداخت",p.reference)}
+        ${field("یادداشت",p.note)}
+        ${field("تاریخ درخواست",date)}
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary approve">تأیید پرداخت و فعال‌سازی</button>
+      </div>
+      <p class="muted">پیش از تأیید، پرداخت واقعی را در حساب دریافت‌کننده بررسی کن.</p>
+    `;
+
+    card.querySelector(".approve").addEventListener("click",async e=>{
+      if(!confirm(
+        "آیا دریافت واقعی مبلغ را بررسی کرده‌ای؟\n"+
+        "در صورت تأیید، اشتراک این دوکان فعال می‌شود."
+      ))return;
+
+      const button=e.currentTarget;
+      button.disabled=true;
+      try{
+        const result=await request(
+          "/admin/activate-subscription",
+          "POST",
+          {
+            shop_id:Number(p.shop_id),
+            payment_id:Number(p.payment_id),
+            reference:p.reference||""
+          }
+        );
+        alert(result.message||"عملیات انجام شد.");
+        await loadPayments();
+      }catch(err){
+        alert(err.message||"فعال‌سازی انجام نشد.");
+        button.disabled=false;
+      }
+    });
+    paymentsBox.appendChild(card);
   });
- }catch(e){}
 }
-$("shopForm").addEventListener("submit",async e=>{
- e.preventDefault();
- try{
-  await api("/shop",{method:"PUT",body:JSON.stringify(values(e.target))});
-  message("تنظیمات دوکان ذخیره شد.");
- }catch(err){message(err.message,true);}
-});
-async function loadAll(){
- await Promise.allSettled([loadProducts(),loadTransactions(),loadWorkers(),loadShop()]);
+
+async function loadPayments(){
+  if(busy)return;
+  busy=true;
+  loadButton.disabled=true;
+  refreshButton.disabled=true;
+  say("در حال بارگذاری درخواست‌ها…");
+  try{
+    const data=await request("/admin/pending-payments");
+    render(Array.isArray(data.payments)?data.payments:[]);
+    say("اتصال موفق بود.");
+  }catch(err){
+    say(err.message||"خطا در دریافت درخواست‌ها.",true);
+    paymentsBox.replaceChildren();
+    const box=document.createElement("div");
+    box.className="panel";
+    box.textContent="درخواست‌ها دریافت نشدند. کلید مدیریت و انتشار API را بررسی کن.";
+    paymentsBox.appendChild(box);
+  }finally{
+    busy=false;
+    loadButton.disabled=false;
+    refreshButton.disabled=false;
+  }
 }
-$("nav").addEventListener("click",e=>{
- const b=e.target.closest("button[data-page]");
- if(!b)return;
- $("nav").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
- ["productsPage","transactionsPage","workersPage","shopPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));
- if(b.dataset.page==="transactionsPage")loadTransactions();
- if(b.dataset.page==="workersPage")loadWorkers();
- if(b.dataset.page==="shopPage")loadShop();
-});
-(async()=>{
- if(!token)return;
- try{await loadMe();}
- catch(e){resetAuth();message("جلسه قبلی معتبر نیست؛ دوباره وارد شو.",true);}
-})();
+loadButton.addEventListener("click",loadPayments);
+refreshButton.addEventListener("click",loadPayments);
 </script>
 </body>
 </html>
