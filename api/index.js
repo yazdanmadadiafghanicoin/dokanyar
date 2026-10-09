@@ -1,3068 +1,923 @@
 const { Pool } = require("pg");
 const crypto = require("crypto");
 
-/* =========================================================
-   CORS
-========================================================= */
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL_NON_POOLING,
+  ssl: { rejectUnauthorized: false },
+  max: 3,
+});
 
-const ALLOWED_ORIGINS = [
-  "https://yazdanmadadiafghanicoin.github.io",
-  "https://yazdanmadadiafghanicoin.github.io/dokanyar",
-  "http://localhost:3000",
-  "http://localhost:5173"
-];
+const send = (res, status, data) => res.status(status).json(data);
+const hash = (s) =>
+  crypto.createHash("sha256").update(String(s)).digest("hex");
+const token = () => crypto.randomBytes(32).toString("hex");
+const code6 = () => String(crypto.randomInt(100000, 1000000));
+const clean = (s, max = 180) => String(s || "").trim().slice(0, max);
+const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
-function setCors(req, res) {
-  const origin = req.headers.origin || "";
+async function setup() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shops (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT 'دوکان من',
+      owner_name TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
 
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      "https://yazdanmadadiafghanicoin.github.io"
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+      username TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      full_name TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL DEFAULT 'owner',
+      token TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(shop_id, username)
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      cost_price NUMERIC(14,2) DEFAULT 0,
+      price NUMERIC(14,2) DEFAULT 0,
+      quantity NUMERIC(14,2) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id SERIAL PRIMARY KEY,
+      shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+      product_id INTEGER,
+      product_name TEXT DEFAULT '',
+      type TEXT NOT NULL,
+      quantity NUMERIC(14,2) DEFAULT 0,
+      price NUMERIC(14,2) DEFAULT 0,
+      total NUMERIC(14,2) DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id SERIAL PRIMARY KEY,
+      shop_id INTEGER UNIQUE REFERENCES shops(id) ON DELETE CASCADE,
+      plan TEXT DEFAULT 'permanent',
+      status TEXT DEFAULT 'pending',
+      amount_usdt NUMERIC(12,2) DEFAULT 10,
+      starts_at TIMESTAMPTZ,
+      expires_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id SERIAL PRIMARY KEY,
+      shop_id INTEGER REFERENCES shops(id) ON DELETE CASCADE,
+      user_id INTEGER,
+      amount_usdt NUMERIC(12,2) DEFAULT 10,
+      currency TEXT DEFAULT 'USDT',
+      plan TEXT DEFAULT 'permanent',
+      status TEXT DEFAULT 'pending',
+      reference TEXT,
+      note TEXT,
+      payment_method TEXT DEFAULT 'Binance Pay',
+      paid_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code_hash TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMPTZ;
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS amount_usdt NUMERIC(12,2) DEFAULT 10;
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USDT';
+    ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'Binance Pay';
+
+    CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique
+    ON users(LOWER(email)) WHERE email IS NOT NULL;
+  `);
+}
+
+async function emailCode(email, code) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!key || !from) {
+    throw new Error(
+      "ارسال ایمیل تنظیم نشده است. متغیرهای RESEND_API_KEY و EMAIL_FROM را در Vercel اضافه کنید."
     );
   }
 
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: "کد تأیید دوکان‌یار",
+      html: `<div dir="rtl"><h2>دوکان‌یار</h2><p>کد تأیید شما:</p><h1>${code}</h1><p>اعتبار کد ۱۵ دقیقه است.</p></div>`,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("ارسال ایمیل ناموفق بود. تنظیمات ایمیل را بررسی کنید.");
+  }
+}
+
+function requestPath(req) {
+  const url = new URL(req.url, "https://local.invalid");
+  if (url.searchParams.has("path")) {
+    return "/" + url.searchParams.get("path").replace(/^\/+|\/+$/g, "");
+  }
+  return url.pathname.replace(/^\/api\/?/, "/").replace(/\/$/, "") || "/";
+}
+
+function getBody(req) {
+  return req.body && typeof req.body === "object" ? req.body : {};
+}
+
+async function getUser(req) {
+  const auth = req.headers.authorization || "";
+  const t = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : req.headers["x-auth-token"];
+
+  if (!t) return null;
+
+  const result = await pool.query(
+    `SELECT u.*, s.name AS shop_name, s.owner_name
+     FROM users u LEFT JOIN shops s ON s.id = u.shop_id
+     WHERE u.token = $1 LIMIT 1`,
+    [t]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function handler(req, res) {
+  const path = requestPath(req);
+  const method = req.method.toUpperCase();
+  const b = getBody(req);
+  const parts = path.split("/").filter(Boolean);
+
+  if (method === "OPTIONS") return res.status(204).end();
+
+  if (method === "GET" && (path === "/" || path === "/health")) {
+    return send(res, 200, {
+      success: true,
+      app: "DokanYar",
+      status: "running",
+    });
+  }
+
+  await setup();
+
+  if (method === "POST" && path === "/setup") {
+    return send(res, 200, {
+      success: true,
+      message: "دیتابیس آماده است.",
+    });
+  }
+
+  if (method === "POST" && path === "/register") {
+    const email = clean(b.email, 254).toLowerCase();
+    const password = String(b.password || "");
+    const shopName = clean(b.shop_name || "دوکان من");
+    const fullName = clean(b.full_name || b.name || "صاحب دوکان");
+
+    if (!validEmail(email)) {
+      return send(res, 400, {
+        success: false,
+        error: "ایمیل معتبر وارد کنید.",
+      });
+    }
+
+    if (password.length < 8) {
+      return send(res, 400, {
+        success: false,
+        error: "رمز عبور باید حداقل ۸ حرف باشد.",
+      });
+    }
+
+    const exists = await pool.query(
+      "SELECT id FROM users WHERE LOWER(email)=LOWER($1)",
+      [email]
+    );
+
+    if (exists.rowCount) {
+      return send(res, 409, {
+        success: false,
+        error: "این ایمیل قبلاً ثبت شده است.",
+      });
+    }
+
+    const verificationCode = code6();
+    const client = await pool.connect();
+
+    let userId;
+
+    try {
+      await client.query("BEGIN");
+
+      const shop = await client.query(
+        "INSERT INTO shops(name,owner_name) VALUES($1,$2) RETURNING id",
+        [shopName, fullName]
+      );
+
+      const shopId = shop.rows[0].id;
+
+      const user = await client.query(
+        `INSERT INTO users
+         (shop_id,username,email,password_hash,full_name,role,
+          email_verified,verification_code_hash,verification_expires_at)
+         VALUES($1,$2,$2,$3,$4,'owner',FALSE,$5,NOW()+INTERVAL '15 minutes')
+         RETURNING id`,
+        [
+          shopId,
+          email,
+          hash(password),
+          fullName,
+          hash(verificationCode),
+        ]
+      );
+
+      userId = user.rows[0].id;
+
+      await client.query(
+        `INSERT INTO subscriptions(shop_id,plan,status,amount_usdt)
+         VALUES($1,'permanent','pending',10)
+         ON CONFLICT(shop_id) DO UPDATE
+         SET plan='permanent',status='pending',amount_usdt=10`,
+        [shopId]
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    try {
+      await emailCode(email, verificationCode);
+    } catch (error) {
+      console.error("Email error:", error.message);
+      return send(res, 503, {
+        success: false,
+        account_created: true,
+        error: error.message,
+      });
+    }
+
+    return send(res, 201, {
+      success: true,
+      user_id: userId,
+      message: "کد تأیید به ایمیل شما فرستاده شد.",
+    });
+  }
+
+  if (
+    method === "POST" &&
+    (path === "/verify-email" || path === "/resend-code")
+  ) {
+    const email = clean(b.email, 254).toLowerCase();
+
+    if (!validEmail(email)) {
+      return send(res, 400, {
+        success: false,
+        error: "ایمیل معتبر وارد کنید.",
+      });
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE LOWER(email)=LOWER($1) LIMIT 1",
+      [email]
+    );
+
+    if (!result.rowCount) {
+      return send(res, 404, {
+        success: false,
+        error: "حساب پیدا نشد.",
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (path === "/verify-email") {
+      const expired =
+        !user.verification_expires_at ||
+        new Date(user.verification_expires_at) < new Date();
+
+      if (
+        expired ||
+        !b.code ||
+        hash(String(b.code).trim()) !== user.verification_code_hash
+      ) {
+        return send(res, 400, {
+          success: false,
+          error: "کد نادرست است یا اعتبار آن پایان یافته است.",
+        });
+      }
+
+      await pool.query(
+        `UPDATE users SET email_verified=TRUE,
+         verification_code_hash=NULL,verification_expires_at=NULL
+         WHERE id=$1`,
+        [user.id]
+      );
+
+      return send(res, 200, {
+        success: true,
+        message: "ایمیل تأیید شد. اکنون وارد شوید.",
+      });
+    }
+
+    const newCode = code6();
+
+    await pool.query(
+      `UPDATE users SET verification_code_hash=$1,
+       verification_expires_at=NOW()+INTERVAL '15 minutes'
+       WHERE id=$2`,
+      [hash(newCode), user.id]
+    );
+
+    try {
+      await emailCode(email, newCode);
+    } catch (error) {
+      return send(res, 503, { success: false, error: error.message });
+    }
+
+    return send(res, 200, {
+      success: true,
+      message: "کد تأیید دوباره ارسال شد.",
+    });
+  }
+
+  if (method === "POST" && path === "/login") {
+    const email = clean(b.email || b.username, 254).toLowerCase();
+    const password = String(b.password || "");
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE LOWER(COALESCE(email,username))=LOWER($1) LIMIT 1",
+      [email]
+    );
+
+    if (
+      !result.rowCount ||
+      result.rows[0].password_hash !== hash(password)
+    ) {
+      return send(res, 401, {
+        success: false,
+        error: "ایمیل یا رمز عبور نادرست است.",
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email && !user.email_verified) {
+      return send(res, 403, {
+        success: false,
+        error: "ابتدا ایمیل خود را تأیید کنید.",
+      });
+    }
+
+    const newToken = token();
+
+    await pool.query("UPDATE users SET token=$1 WHERE id=$2", [
+      newToken,
+      user.id,
+    ]);
+
+    const subscription = await pool.query(
+      "SELECT * FROM subscriptions WHERE shop_id=$1",
+      [user.shop_id]
+    );
+
+    return send(res, 200, {
+      success: true,
+      token: newToken,
+      user: {
+        id: user.id,
+        shop_id: user.shop_id,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        email_verified: user.email_verified,
+      },
+      subscription: subscription.rows[0] || null,
+    });
+  }
+
+  const user = await getUser(req);
+
+  if (path === "/logout" && method === "POST") {
+    if (user) {
+      await pool.query("UPDATE users SET token=NULL WHERE id=$1", [
+        user.id,
+      ]);
+    }
+    return send(res, 200, { success: true });
+  }
+
+  if (!user) {
+    return send(res, 401, {
+      success: false,
+      error: "ابتدا وارد حساب شوید.",
+    });
+  }
+
+  if (user.email && !user.email_verified) {
+    return send(res, 403, {
+      success: false,
+      error: "ابتدا ایمیل خود را تأیید کنید.",
+    });
+  }
+
+  if (method === "GET" && path === "/me") {
+    return send(res, 200, {
+      success: true,
+      user: {
+        id: user.id,
+        shop_id: user.shop_id,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        email_verified: user.email_verified,
+        shop_name: user.shop_name,
+        owner_name: user.owner_name,
+      },
+    });
+  }
+
+  if (method === "GET" && path === "/subscription") {
+    const sub = await pool.query(
+      "SELECT * FROM subscriptions WHERE shop_id=$1",
+      [user.shop_id]
+    );
+
+    const payments = await pool.query(
+      `SELECT id,amount_usdt,currency,status,reference,created_at
+       FROM payments WHERE shop_id=$1 ORDER BY id DESC LIMIT 10`,
+      [user.shop_id]
+    );
+
+    return send(res, 200, {
+      success: true,
+      subscription: sub.rows[0] || { status: "pending", plan: "permanent" },
+      payments: payments.rows,
+    });
+  }
+
+  if (method === "POST" && path === "/upgrade-request") {
+    const reference = clean(b.reference, 180);
+
+    if (!reference) {
+      return send(res, 400, {
+        success: false,
+        error: "شماره مرجع پرداخت را وارد کنید.",
+      });
+    }
+
+    const duplicate = await pool.query(
+      "SELECT id FROM payments WHERE shop_id=$1 AND reference=$2 AND status='pending'",
+      [user.shop_id, reference]
+    );
+
+    if (duplicate.rowCount) {
+      return send(res, 409, {
+        success: false,
+        error: "این درخواست قبلاً ثبت شده است.",
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO payments
+       (shop_id,user_id,amount_usdt,currency,plan,status,reference,note,payment_method)
+       VALUES($1,$2,10,'USDT','permanent','pending',$3,$4,'Binance Pay')
+       RETURNING id,status,amount_usdt,currency,reference,created_at`,
+      [user.shop_id, user.id, reference, clean(b.note, 500)]
+    );
+
+    await pool.query(
+      `INSERT INTO subscriptions(shop_id,plan,status,amount_usdt)
+       VALUES($1,'permanent','pending',10)
+       ON CONFLICT(shop_id) DO UPDATE SET
+       plan='permanent',
+       status=CASE WHEN subscriptions.status='active'
+       THEN subscriptions.status ELSE 'pending' END,
+       amount_usdt=10`,
+      [user.shop_id]
+    );
+
+    return send(res, 201, {
+      success: true,
+      message: "درخواست ثبت شد و منتظر بررسی مدیر است.",
+      payment: result.rows[0],
+    });
+  }
+
+  if (method === "GET" && path === "/products") {
+    const result = await pool.query(
+      "SELECT * FROM products WHERE shop_id=$1 ORDER BY id DESC",
+      [user.shop_id]
+    );
+    return send(res, 200, { success: true, products: result.rows });
+  }
+
+  if (method === "POST" && path === "/products") {
+    const name = clean(b.name);
+    const cost = Number(b.cost_price ?? b.buy_price ?? 0);
+    const price = Number(b.price ?? b.sell_price ?? 0);
+    const quantity = Number(b.quantity ?? b.stock ?? 0);
+
+    if (
+      !name ||
+      ![cost, price, quantity].every(Number.isFinite) ||
+      cost < 0 ||
+      price < 0 ||
+      quantity < 0
+    ) {
+      return send(res, 400, {
+        success: false,
+        error: "اطلاعات کالا معتبر نیست.",
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO products(shop_id,name,cost_price,price,quantity)
+       VALUES($1,$2,$3,$4,$5) RETURNING *`,
+      [user.shop_id, name, cost, price, quantity]
+    );
+
+    return send(res, 201, {
+      success: true,
+      product: result.rows[0],
+      message: "کالا اضافه شد.",
+    });
+  }
+
+  if (parts[0] === "products" && parts[1] && method === "DELETE") {
+    const result = await pool.query(
+      "DELETE FROM products WHERE id=$1 AND shop_id=$2 RETURNING id",
+      [Number(parts[1]), user.shop_id]
+    );
+
+    if (!result.rowCount) {
+      return send(res, 404, {
+        success: false,
+        error: "کالا پیدا نشد.",
+      });
+    }
+
+    return send(res, 200, { success: true });
+  }
+
+  if (
+    (path === "/buy" || path === "/sell") &&
+    method === "POST"
+  ) {
+    const productId = Number(b.product_id);
+    const quantity = Number(b.quantity);
+    const price = Number(b.price);
+
+    if (
+      !Number.isInteger(productId) ||
+      !Number.isFinite(quantity) ||
+      quantity <= 0 ||
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
+      return send(res, 400, {
+        success: false,
+        error: "تعداد و قیمت معتبر وارد کنید.",
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const found = await client.query(
+        "SELECT * FROM products WHERE id=$1 AND shop_id=$2 FOR UPDATE",
+        [productId, user.shop_id]
+      );
+
+      if (!found.rowCount) throw new Error("کالا پیدا نشد.");
+
+      const product = found.rows[0];
+      const isSell = path === "/sell";
+      const oldQuantity = Number(product.quantity || 0);
+
+      if (isSell && oldQuantity < quantity) {
+        throw new Error("موجودی کالا کافی نیست.");
+      }
+
+      const newQuantity = isSell
+        ? oldQuantity - quantity
+        : oldQuantity + quantity;
+
+      const total = quantity * price;
+
+      await client.query(
+        `UPDATE products SET quantity=$1,
+         cost_price=CASE WHEN $2='buy' THEN $3 ELSE cost_price END,
+         price=CASE WHEN $2='sell' THEN $3 ELSE price END
+         WHERE id=$4 AND shop_id=$5`,
+        [
+          newQuantity,
+          isSell ? "sell" : "buy",
+          price,
+          productId,
+          user.shop_id,
+        ]
+      );
+
+      await client.query(
+        `INSERT INTO transactions
+         (shop_id,product_id,product_name,type,quantity,price,total)
+         VALUES($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          user.shop_id,
+          productId,
+          product.name,
+          isSell ? "sell" : "buy",
+          quantity,
+          price,
+          total,
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      return send(res, 200, {
+        success: true,
+        message: isSell ? "فروش ثبت شد." : "خرید ثبت شد.",
+        new_quantity: newQuantity,
+        stock: newQuantity,
+        total,
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      return send(res, 400, {
+        success: false,
+        error: error.message || "عملیات انجام نشد.",
+      });
+    } finally {
+      client.release();
+    }
+  }
+
+  if (method === "GET" && path === "/transactions") {
+    const result = await pool.query(
+      "SELECT * FROM transactions WHERE shop_id=$1 ORDER BY id DESC LIMIT 500",
+      [user.shop_id]
+    );
+
+    return send(res, 200, { success: true, transactions: result.rows });
+  }
+
+  if (method === "GET" && path === "/workers") {
+    const result = await pool.query(
+      `SELECT id,username,email,full_name,role,created_at
+       FROM users WHERE shop_id=$1 AND role='worker' ORDER BY id DESC`,
+      [user.shop_id]
+    );
+
+    return send(res, 200, { success: true, workers: result.rows });
+  }
+
+  if (method === "POST" && path === "/workers") {
+    if (user.role !== "owner" && user.role !== "admin") {
+      return send(res, 403, {
+        success: false,
+        error: "فقط صاحب دوکان می‌تواند کارمند اضافه کند.",
+      });
+    }
+
+    const email = clean(b.email || b.username, 254).toLowerCase();
+    const name = clean(b.full_name || b.name);
+    const password = String(b.password || "");
+
+    if (!email || password.length < 8) {
+      return send(res, 400, {
+        success: false,
+        error: "ایمیل و رمز حداقل ۸ حرفی وارد کنید.",
+      });
+    }
+
+    const duplicate = await pool.query(
+      "SELECT id FROM users WHERE shop_id=$1 AND LOWER(username)=LOWER($2)",
+      [user.shop_id, email]
+    );
+
+    if (duplicate.rowCount) {
+      return send(res, 409, {
+        success: false,
+        error: "این کارمند قبلاً ثبت شده است.",
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO users
+       (shop_id,username,email,password_hash,full_name,role,email_verified)
+       VALUES($1,$2,$2,$3,$4,'worker',TRUE)
+       RETURNING id,username,email,full_name,role`,
+      [user.shop_id, email, hash(password), name]
+    );
+
+    return send(res, 201, {
+      success: true,
+      worker: result.rows[0],
+      message: "کارمند اضافه شد.",
+    });
+  }
+
+  if (parts[0] === "workers" && parts[1] && method === "DELETE") {
+    if (user.role !== "owner" && user.role !== "admin") {
+      return send(res, 403, {
+        success: false,
+        error: "اجازه حذف کارمند را ندارید.",
+      });
+    }
+
+    const id = Number(parts[1]);
+
+    if (id === user.id) {
+      return send(res, 400, {
+        success: false,
+        error: "حساب خودتان را نمی‌توانید حذف کنید.",
+      });
+    }
+
+    const result = await pool.query(
+      "DELETE FROM users WHERE id=$1 AND shop_id=$2 AND role='worker' RETURNING id",
+      [id, user.shop_id]
+    );
+
+    if (!result.rowCount) {
+      return send(res, 404, {
+        success: false,
+        error: "کارمند پیدا نشد.",
+      });
+    }
+
+    return send(res, 200, { success: true });
+  }
+
+  if (method === "GET" && path === "/shop") {
+    return send(res, 200, {
+      success: true,
+      shop: {
+        id: user.shop_id,
+        name: user.shop_name,
+        owner_name: user.owner_name,
+      },
+    });
+  }
+
+  if (method === "PUT" && path === "/shop") {
+    const name = clean(b.name || b.shop_name);
+    const ownerName = clean(b.owner_name);
+
+    const result = await pool.query(
+      `UPDATE shops SET
+       name=CASE WHEN $1='' THEN name ELSE $1 END,
+       owner_name=CASE WHEN $2='' THEN owner_name ELSE $2 END
+       WHERE id=$3 RETURNING *`,
+      [name, ownerName, user.shop_id]
+    );
+
+    return send(res, 200, { success: true, shop: result.rows[0] });
+  }
+
+  // مدیر: POST /api/admin/approve-payment
+  // Header: x-admin-key: مقدار DOKANYAAR_ADMIN_KEY
+  if (
+    method === "POST" &&
+    path === "/admin/approve-payment"
+  ) {
+    const adminKey = process.env.DOKANYAAR_ADMIN_KEY;
+
+    if (!adminKey || req.headers["x-admin-key"] !== adminKey) {
+      return send(res, 403, {
+        success: false,
+        error: "دسترسی مدیر رد شد.",
+      });
+    }
+
+    const paymentId = Number(b.payment_id);
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const payment = await client.query(
+        "SELECT * FROM payments WHERE id=$1 FOR UPDATE",
+        [paymentId]
+      );
+
+      if (!payment.rowCount) throw new Error("درخواست پرداخت پیدا نشد.");
+
+      const p = payment.rows[0];
+
+      await client.query(
+        "UPDATE payments SET status='approved',paid_at=NOW() WHERE id=$1",
+        [paymentId]
+      );
+
+      await client.query(
+        `INSERT INTO subscriptions(shop_id,plan,status,amount_usdt,starts_at,expires_at)
+         VALUES($1,'permanent','active',10,NOW(),NULL)
+         ON CONFLICT(shop_id) DO UPDATE SET
+         plan='permanent',status='active',amount_usdt=10,
+         starts_at=COALESCE(subscriptions.starts_at,NOW()),expires_at=NULL`,
+        [p.shop_id]
+      );
+
+      await client.query("COMMIT");
+
+      return send(res, 200, {
+        success: true,
+        message: "پرداخت تأیید و حساب فعال شد.",
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      return send(res, 400, {
+        success: false,
+        error: error.message,
+      });
+    } finally {
+      client.release();
+    }
+  }
+
+  if (method === "GET" && path === "/admin/pending-payments") {
+    const adminKey = process.env.DOKANYAAR_ADMIN_KEY;
+
+    if (!adminKey || req.headers["x-admin-key"] !== adminKey) {
+      return send(res, 403, {
+        success: false,
+        error: "دسترسی مدیر رد شد.",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT p.*,s.name AS shop_name,u.email
+       FROM payments p
+       LEFT JOIN shops s ON s.id=p.shop_id
+       LEFT JOIN users u ON u.id=p.user_id
+       WHERE p.status='pending'
+       ORDER BY p.id DESC`
+    );
+
+    return send(res, 200, { success: true, payments: result.rows });
+  }
+
+  return send(res, 404, {
+    success: false,
+    error: "Endpoint not found",
+    path,
+  });
+}
+
+module.exports = async (req, res) => {
+  const origin = req.headers.origin || "";
+  const allowed = (
+    process.env.ALLOWED_ORIGINS ||
+    "https://dokanyar-six.vercel.app,https://yazdanmadadiafghanicoin.github.io"
+  )
+    .split(",")
+    .map((x) => x.trim());
+
+  if (origin && allowed.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Auth-Token, X-Admin-Key"
+  );
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET,POST,PUT,DELETE,OPTIONS"
   );
 
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, x-auth-token, x-admin-key"
-  );
-
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Max-Age", "86400");
-}
-
-
-/* =========================================================
-   DATABASE
-========================================================= */
-
-let pool = null;
-
-function getPool() {
-  if (pool) return pool;
-
-  const connectionString =
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    process.env.POSTGRES_PRISMA_URL ||
-    process.env.POSTGRES_URL_NON_POOLING;
-
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL پیدا نشد. در Vercel قسمت Environment Variables را بررسی کنید."
-    );
-  }
-
-  pool = new Pool({
-    connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    },
-    max: 5
-  });
-
-  return pool;
-}
-
-
-/* =========================================================
-   CONSTANTS
-========================================================= */
-
-const FREE_PRODUCT_LIMIT = 50;
-const PRO_PRODUCT_LIMIT = 500;
-const PRO_PRICE_AFN = 500;
-const PRO_DAYS = 30;
-
-
-/* =========================================================
-   PASSWORD
-========================================================= */
-
-function hashPassword(password) {
-  return crypto
-    .createHash("sha256")
-    .update(String(password))
-    .digest("hex");
-}
-
-
-/* =========================================================
-   TOKEN
-========================================================= */
-
-function createToken() {
-  return crypto.randomBytes(32).toString("hex");
-}
-
-
-/* =========================================================
-   JSON
-========================================================= */
-
-function send(res, status, data) {
-  return res.status(status).json(data);
-}
-
-
-/* =========================================================
-   BODY
-========================================================= */
-
-async function getBody(req) {
-  if (req.body) {
-    if (typeof req.body === "object") {
-      return req.body;
-    }
-
-    try {
-      return JSON.parse(req.body);
-    } catch (e) {
-      return {};
-    }
-  }
-
-  return {};
-}
-
-
-/* =========================================================
-   DATABASE SETUP
-========================================================= */
-
-async function setupDatabase() {
-  const db = getPool();
-
-  /* -------------------------------------------------------
-     SHOPS
-  ------------------------------------------------------- */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS shops (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      owner_name TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-
-  /* -------------------------------------------------------
-     USERS
-  ------------------------------------------------------- */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-      username TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      full_name TEXT,
-      role TEXT NOT NULL DEFAULT 'worker',
-      token TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(shop_id, username)
-    )
-  `);
-
-
-  /* -------------------------------------------------------
-     PRODUCTS
-  ------------------------------------------------------- */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS products (
-      id SERIAL PRIMARY KEY,
-      shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      brand TEXT,
-      model TEXT,
-      buy_price NUMERIC(14,2) DEFAULT 0,
-      sell_price NUMERIC(14,2) DEFAULT 0,
-      quantity NUMERIC(14,2) DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-
-  /* -------------------------------------------------------
-     TRANSACTIONS
-  ------------------------------------------------------- */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id SERIAL PRIMARY KEY,
-      shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      type TEXT NOT NULL,
-      quantity NUMERIC(14,2) DEFAULT 0,
-      unit_price NUMERIC(14,2) DEFAULT 0,
-      total NUMERIC(14,2) DEFAULT 0,
-      buy_cost NUMERIC(14,2) DEFAULT 0,
-      profit NUMERIC(14,2) DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-
-  /* =======================================================
-     SUBSCRIPTIONS
-  ======================================================= */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS subscriptions (
-      id SERIAL PRIMARY KEY,
-      shop_id INTEGER NOT NULL UNIQUE
-        REFERENCES shops(id) ON DELETE CASCADE,
-
-      plan TEXT NOT NULL DEFAULT 'free',
-
-      status TEXT NOT NULL DEFAULT 'active',
-
-      price_afn NUMERIC(14,2) DEFAULT 0,
-
-      starts_at TIMESTAMP,
-
-      ends_at TIMESTAMP,
-
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-
-  /* =======================================================
-     PAYMENTS
-  ======================================================= */
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id SERIAL PRIMARY KEY,
-
-      shop_id INTEGER NOT NULL
-        REFERENCES shops(id) ON DELETE CASCADE,
-
-      user_id INTEGER
-        REFERENCES users(id) ON DELETE SET NULL,
-
-      amount_afn NUMERIC(14,2) NOT NULL DEFAULT 0,
-
-      plan TEXT NOT NULL DEFAULT 'pro',
-
-      status TEXT NOT NULL DEFAULT 'pending',
-
-      reference TEXT,
-
-      note TEXT,
-
-      paid_at TIMESTAMP,
-
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-
-  /* =======================================================
-     CREATE FREE SUBSCRIPTION FOR OLD SHOPS
-  ======================================================= */
-
-  await db.query(`
-    INSERT INTO subscriptions
-    (
-      shop_id,
-      plan,
-      status,
-      price_afn
-    )
-
-    SELECT
-      s.id,
-      'free',
-      'active',
-      0
-
-    FROM shops s
-
-    LEFT JOIN subscriptions sub
-      ON sub.shop_id = s.id
-
-    WHERE sub.id IS NULL
-  `);
-
-  return true;
-}
-
-
-/* =========================================================
-   AUTH
-========================================================= */
-
-async function getAuth(req) {
-  const db = getPool();
-
-  const auth =
-    req.headers.authorization ||
-    req.headers.Authorization ||
-    "";
-
-  let token = "";
-
-  if (auth.startsWith("Bearer ")) {
-    token = auth.substring(7).trim();
-  }
-
-  if (!token) {
-    token =
-      req.headers["x-auth-token"] ||
-      "";
-  }
-
-  if (!token) {
-    return null;
-  }
-
-  const result =
-    await db.query(
-      `
-      SELECT
-        u.id,
-        u.shop_id,
-        u.username,
-        u.full_name,
-        u.role,
-        s.name AS shop_name,
-        s.owner_name
-
-      FROM users u
-
-      JOIN shops s
-        ON s.id = u.shop_id
-
-      WHERE u.token = $1
-
-      LIMIT 1
-      `,
-      [token]
-    );
-
-  if (!result.rows.length) {
-    return null;
-  }
-
-  return result.rows[0];
-}
-
-
-/* =========================================================
-   SUBSCRIPTION
-========================================================= */
-
-async function getSubscription(shopId) {
-
-  const db = getPool();
-
-  let result =
-    await db.query(
-      `
-      SELECT *
-      FROM subscriptions
-      WHERE shop_id = $1
-      LIMIT 1
-      `,
-      [shopId]
-    );
-
-  /* اگر اشتراک وجود نداشت، Free بساز */
-
-  if (!result.rows.length) {
-
-    result =
-      await db.query(
-        `
-        INSERT INTO subscriptions
-        (
-          shop_id,
-          plan,
-          status,
-          price_afn
-        )
-
-        VALUES
-        ($1,'free','active',0)
-
-        RETURNING *
-        `,
-        [shopId]
-      );
-  }
-
-  let subscription =
-    result.rows[0];
-
-
-  /* =======================================================
-     CHECK EXPIRATION
-  ======================================================= */
-
-  if (
-    subscription.plan === "pro" &&
-    subscription.ends_at
-  ) {
-
-    const end =
-      new Date(subscription.ends_at);
-
-    const now =
-      new Date();
-
-    if (end <= now) {
-
-      const expired =
-        await db.query(
-          `
-          UPDATE subscriptions
-
-          SET
-            plan = 'free',
-            status = 'expired',
-            price_afn = 0,
-            updated_at = CURRENT_TIMESTAMP
-
-          WHERE shop_id = $1
-
-          RETURNING *
-          `,
-          [shopId]
-        );
-
-      subscription =
-        expired.rows[0];
-    }
-  }
-
-
-  const isPro =
-    subscription.plan === "pro" &&
-    subscription.status === "active" &&
-    subscription.ends_at &&
-    new Date(subscription.ends_at) > new Date();
-
-
-  let daysRemaining = 0;
-
-  if (isPro) {
-
-    const difference =
-      new Date(subscription.ends_at).getTime() -
-      new Date().getTime();
-
-    daysRemaining =
-      Math.max(
-        0,
-        Math.ceil(
-          difference /
-          (1000 * 60 * 60 * 24)
-        )
-      );
-  }
-
-
-  return {
-    ...subscription,
-
-    is_pro: isPro,
-
-    product_limit:
-      isPro
-        ? PRO_PRODUCT_LIMIT
-        : FREE_PRODUCT_LIMIT,
-
-    days_remaining:
-      daysRemaining
-  };
-}
-
-
-/* =========================================================
-   PRODUCT LIMIT
-========================================================= */
-
-async function checkProductLimit(shopId) {
-
-  const db = getPool();
-
-  const subscription =
-    await getSubscription(shopId);
-
-  const countResult =
-    await db.query(
-      `
-      SELECT COUNT(*) AS count
-      FROM products
-      WHERE shop_id = $1
-      `,
-      [shopId]
-    );
-
-  const productCount =
-    Number(countResult.rows[0].count || 0);
-
-  const limit =
-    subscription.product_limit;
-
-  return {
-    allowed: productCount < limit,
-    count: productCount,
-    limit,
-    subscription
-  };
-}
-
-
-/* =========================================================
-   ADMIN AUTH
-========================================================= */
-
-function checkAdmin(req) {
-
-  const configuredKey =
-    process.env.DOKANYAAR_ADMIN_KEY || "";
-
-  const requestKey =
-    req.headers["x-admin-key"] || "";
-
-  if (!configuredKey) {
-    return false;
-  }
-
-  return (
-    String(requestKey) ===
-    String(configuredKey)
-  );
-}
-
-
-/* =========================================================
-   MAIN
-========================================================= */
-
-module.exports = async function handler(req, res) {
-
-  setCors(req, res);
-
-
-  /* =======================================================
-     OPTIONS
-  ======================================================= */
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
-
-  const path =
-    (req.url || "")
-      .split("?")[0]
-      .replace(/^\/api/, "") ||
-      "/";
-
-
   try {
-
-
-    /* =====================================================
-       HEALTH
-    ===================================================== */
-
-    if (
-      path === "/" &&
-      req.method === "GET"
-    ) {
-
-      let database = false;
-
-      try {
-
-        const db =
-          getPool();
-
-        await db.query(
-          "SELECT 1"
-        );
-
-        database = true;
-
-      } catch (e) {
-
-        database = false;
-      }
-
-      return send(res,200,{
-
-        success:true,
-
-        app:"Dokanyaar",
-
-        message:
-          "دوکان‌یار API فعال است.",
-
-        database
-
-      });
-    }
-
-
-    /* =====================================================
-       SETUP
-    ===================================================== */
-
-    if (
-      path === "/setup" &&
-      (
-        req.method === "GET" ||
-        req.method === "POST"
-      )
-    ) {
-
-      await setupDatabase();
-
-      return send(res,200,{
-
-        success:true,
-
-        message:
-          "دیتابیس دوکان‌یار آماده است."
-
-      });
-    }
-
-
-    /* =====================================================
-       DATABASE SETUP
-    ===================================================== */
-
-    await setupDatabase();
-
-
-    /* =====================================================
-       REGISTER
-    ===================================================== */
-
-    if (
-      path === "/register" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await getBody(req);
-
-      const shop_name =
-        String(
-          body.shop_name || ""
-        ).trim();
-
-      const owner_name =
-        String(
-          body.owner_name || ""
-        ).trim();
-
-      const username =
-        String(
-          body.username || ""
-        ).trim();
-
-      const password =
-        String(
-          body.password || ""
-        );
-
-      if (
-        !shop_name ||
-        !owner_name ||
-        !username ||
-        !password
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "تمام اطلاعات ثبت دوکان را وارد کنید."
-
-        });
-      }
-
-
-      if (
-        password.length < 4
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "رمز عبور باید حداقل ۴ حرف باشد."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const existing =
-        await db.query(
-          `
-          SELECT id
-
-          FROM users
-
-          WHERE LOWER(username)
-          =
-          LOWER($1)
-
-          LIMIT 1
-          `,
-          [username]
-        );
-
-
-      if (
-        existing.rows.length
-      ) {
-
-        return send(res,409,{
-
-          success:false,
-
-          error:
-            "این نام کاربری قبلاً استفاده شده است."
-
-        });
-      }
-
-
-      const shopResult =
-        await db.query(
-          `
-          INSERT INTO shops
-          (
-            name,
-            owner_name
-          )
-
-          VALUES
-          ($1,$2)
-
-          RETURNING
-            id,
-            name,
-            owner_name
-          `,
-          [
-            shop_name,
-            owner_name
-          ]
-        );
-
-
-      const shop =
-        shopResult.rows[0];
-
-
-      const token =
-        createToken();
-
-
-      const userResult =
-        await db.query(
-          `
-          INSERT INTO users
-          (
-            shop_id,
-            username,
-            password_hash,
-            full_name,
-            role,
-            token
-          )
-
-          VALUES
-          ($1,$2,$3,$4,'owner',$5)
-
-          RETURNING
-            id,
-            shop_id,
-            username,
-            full_name,
-            role
-          `,
-          [
-            shop.id,
-            username,
-            hashPassword(password),
-            owner_name,
-            token
-          ]
-        );
-
-
-      const user =
-        userResult.rows[0];
-
-
-      /* ===================================================
-         FREE SUBSCRIPTION
-      =================================================== */
-
-      await db.query(
-        `
-        INSERT INTO subscriptions
-        (
-          shop_id,
-          plan,
-          status,
-          price_afn
-        )
-
-        VALUES
-        ($1,'free','active',0)
-
-        ON CONFLICT (shop_id)
-        DO NOTHING
-        `,
-        [shop.id]
-      );
-
-
-      return send(res,201,{
-
-        success:true,
-
-        token,
-
-        user,
-
-        shop,
-
-        subscription:{
-
-          plan:"free",
-
-          status:"active",
-
-          product_limit:
-            FREE_PRODUCT_LIMIT,
-
-          price_afn:0
-
-        }
-
-      });
-    }
-
-
-    /* =====================================================
-       LOGIN
-    ===================================================== */
-
-    if (
-      path === "/login" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await getBody(req);
-
-      const username =
-        String(
-          body.username || ""
-        ).trim();
-
-      const password =
-        String(
-          body.password || ""
-        );
-
-
-      if (
-        !username ||
-        !password
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "نام کاربری و رمز عبور را وارد کنید."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-
-            u.id,
-            u.shop_id,
-            u.username,
-            u.full_name,
-            u.role,
-            u.password_hash,
-
-            s.name AS shop_name,
-            s.owner_name
-
-          FROM users u
-
-          JOIN shops s
-            ON s.id = u.shop_id
-
-          WHERE
-            LOWER(u.username)
-            =
-            LOWER($1)
-
-          LIMIT 1
-          `,
-          [username]
-        );
-
-
-      if (
-        !result.rows.length
-      ) {
-
-        return send(res,401,{
-
-          success:false,
-
-          error:
-            "نام کاربری یا رمز عبور اشتباه است."
-
-        });
-      }
-
-
-      const user =
-        result.rows[0];
-
-
-      if (
-        user.password_hash !==
-        hashPassword(password)
-      ) {
-
-        return send(res,401,{
-
-          success:false,
-
-          error:
-            "نام کاربری یا رمز عبور اشتباه است."
-
-        });
-      }
-
-
-      const token =
-        createToken();
-
-
-      await db.query(
-        `
-        UPDATE users
-
-        SET token = $1
-
-        WHERE id = $2
-        `,
-        [
-          token,
-          user.id
-        ]
-      );
-
-
-      delete user.password_hash;
-
-
-      const subscription =
-        await getSubscription(
-          user.shop_id
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        token,
-
-        user:{
-
-          id:user.id,
-
-          shop_id:user.shop_id,
-
-          username:user.username,
-
-          full_name:user.full_name,
-
-          role:user.role
-
-        },
-
-        shop:{
-
-          id:user.shop_id,
-
-          name:user.shop_name,
-
-          owner_name:user.owner_name
-
-        },
-
-        subscription
-
-      });
-    }
-
-
-    /* =====================================================
-       ADMIN: ACTIVATE SUBSCRIPTION
-       
-       این بخش قبل از AUTH عادی قرار گرفته.
-       فقط با x-admin-key کار می‌کند.
-    ===================================================== */
-
-    if (
-      path === "/admin/activate-subscription" &&
-      req.method === "POST"
-    ) {
-
-      if (!checkAdmin(req)) {
-
-        return send(res,403,{
-
-          success:false,
-
-          error:
-            "دسترسی مدیر مجاز نیست."
-
-        });
-      }
-
-
-      const body =
-        await getBody(req);
-
-
-      const shopId =
-        Number(body.shop_id);
-
-
-      const paymentId =
-        Number(body.payment_id || 0);
-
-
-      const reference =
-        String(
-          body.reference || ""
-        ).trim();
-
-
-      if (!shopId) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "shop_id الزامی است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const shop =
-        await db.query(
-          `
-          SELECT id,name
-          FROM shops
-          WHERE id = $1
-          `,
-          [shopId]
-        );
-
-
-      if (!shop.rows.length) {
-
-        return send(res,404,{
-
-          success:false,
-
-          error:
-            "دوکان پیدا نشد."
-
-        });
-      }
-
-
-      const startDate =
-        new Date();
-
-
-      const endDate =
-        new Date(
-          startDate.getTime() +
-          PRO_DAYS *
-          24 *
-          60 *
-          60 *
-          1000
-        );
-
-
-      await db.query(
-        `
-        UPDATE subscriptions
-
-        SET
-          plan = 'pro',
-          status = 'active',
-          price_afn = $1,
-          starts_at = $2,
-          ends_at = $3,
-          updated_at = CURRENT_TIMESTAMP
-
-        WHERE shop_id = $4
-        `,
-        [
-          PRO_PRICE_AFN,
-          startDate,
-          endDate,
-          shopId
-        ]
-      );
-
-
-      if (paymentId) {
-
-        await db.query(
-          `
-          UPDATE payments
-
-          SET
-            status = 'paid',
-            reference = COALESCE($1, reference),
-            paid_at = CURRENT_TIMESTAMP
-
-          WHERE id = $2
-          AND shop_id = $3
-          `,
-          [
-            reference || null,
-            paymentId,
-            shopId
-          ]
-        );
-
-      } else {
-
-        await db.query(
-          `
-          INSERT INTO payments
-          (
-            shop_id,
-            amount_afn,
-            plan,
-            status,
-            reference,
-            paid_at
-          )
-
-          VALUES
-          ($1,$2,'pro','paid',$3,CURRENT_TIMESTAMP)
-          `,
-          [
-            shopId,
-            PRO_PRICE_AFN,
-            reference || null
-          ]
-        );
-      }
-
-
-      const subscription =
-        await getSubscription(
-          shopId
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        message:
-          "اشتراک Pro فعال شد.",
-
-        subscription
-
-      });
-    }
-
-
-    /* =====================================================
-       ADMIN: REVENUE
-    ===================================================== */
-
-    if (
-      path === "/admin/revenue" &&
-      req.method === "GET"
-    ) {
-
-      if (!checkAdmin(req)) {
-
-        return send(res,403,{
-
-          success:false,
-
-          error:
-            "دسترسی مدیر مجاز نیست."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const totals =
-        await db.query(
-          `
-          SELECT
-
-            COUNT(*) AS payments_count,
-
-            COALESCE(
-              SUM(
-                CASE
-                  WHEN status = 'paid'
-                  THEN amount_afn
-                  ELSE 0
-                END
-              ),
-              0
-            ) AS total_revenue,
-
-            COUNT(
-              CASE
-                WHEN status = 'paid'
-                THEN 1
-              END
-            ) AS paid_count,
-
-            COUNT(
-              CASE
-                WHEN status = 'pending'
-                THEN 1
-              END
-            ) AS pending_count
-
-          FROM payments
-          `
-        );
-
-
-      const subscriptions =
-        await db.query(
-          `
-          SELECT
-
-            COUNT(*) AS total_subscriptions,
-
-            COUNT(
-              CASE
-                WHEN plan = 'pro'
-                AND status = 'active'
-                AND ends_at > CURRENT_TIMESTAMP
-                THEN 1
-              END
-            ) AS active_pro,
-
-            COUNT(
-              CASE
-                WHEN plan = 'free'
-                THEN 1
-              END
-            ) AS free_accounts
-
-          FROM subscriptions
-          `
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        revenue:{
-
-          total_revenue:
-            Number(
-              totals.rows[0].total_revenue || 0
-            ),
-
-          payments_count:
-            Number(
-              totals.rows[0].payments_count || 0
-            ),
-
-          paid_count:
-            Number(
-              totals.rows[0].paid_count || 0
-            ),
-
-          pending_count:
-            Number(
-              totals.rows[0].pending_count || 0
-            ),
-
-          total_subscriptions:
-            Number(
-              subscriptions.rows[0].total_subscriptions || 0
-            ),
-
-          active_pro:
-            Number(
-              subscriptions.rows[0].active_pro || 0
-            ),
-
-          free_accounts:
-            Number(
-              subscriptions.rows[0].free_accounts || 0
-            )
-
-        }
-
-      });
-    }
-
-
-    /* =====================================================
-       AUTH REQUIRED
-    ===================================================== */
-
-    const auth =
-      await getAuth(req);
-
-
-    if (!auth) {
-
-      return send(res,401,{
-
-        success:false,
-
-        error:
-          "لطفاً ابتدا وارد حساب شوید."
-
-      });
-    }
-
-
-    /* =====================================================
-       SUBSCRIPTION STATUS
-    ===================================================== */
-
-    if (
-      path === "/subscription" &&
-      req.method === "GET"
-    ) {
-
-      const subscription =
-        await getSubscription(
-          auth.shop_id
-        );
-
-
-      const limitInfo =
-        await checkProductLimit(
-          auth.shop_id
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        subscription,
-
-        products_count:
-          limitInfo.count,
-
-        product_limit:
-          limitInfo.limit,
-
-        can_add_product:
-          limitInfo.allowed
-
-      });
-    }
-
-
-    /* =====================================================
-       UPGRADE REQUEST
-    ===================================================== */
-
-    if (
-      path === "/upgrade-request" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await getBody(req);
-
-
-      const reference =
-        String(
-          body.reference || ""
-        ).trim();
-
-
-      const note =
-        String(
-          body.note || ""
-        ).trim();
-
-
-      const db =
-        getPool();
-
-
-      const subscription =
-        await getSubscription(
-          auth.shop_id
-        );
-
-
-      if (subscription.is_pro) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "حساب شما در حال حاضر Pro است."
-
-        });
-      }
-
-
-      const payment =
-        await db.query(
-          `
-          INSERT INTO payments
-          (
-            shop_id,
-            user_id,
-            amount_afn,
-            plan,
-            status,
-            reference,
-            note
-          )
-
-          VALUES
-          ($1,$2,$3,'pro','pending',$4,$5)
-
-          RETURNING *
-          `,
-          [
-            auth.shop_id,
-            auth.id,
-            PRO_PRICE_AFN,
-            reference || null,
-            note || null
-          ]
-        );
-
-
-      return send(res,201,{
-
-        success:true,
-
-        message:
-          "درخواست ارتقای Pro ثبت شد. پس از تأیید پرداخت، Pro فعال می‌شود.",
-
-        payment:
-          payment.rows[0],
-
-        amount_afn:
-          PRO_PRICE_AFN,
-
-        days:
-          PRO_DAYS
-
-      });
-    }
-
-
-    /* =====================================================
-       PAYMENT HISTORY
-    ===================================================== */
-
-    if (
-      path === "/payments" &&
-      req.method === "GET"
-    ) {
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-
-            id,
-            amount_afn,
-            plan,
-            status,
-            reference,
-            note,
-            paid_at,
-            created_at
-
-          FROM payments
-
-          WHERE shop_id = $1
-
-          ORDER BY id DESC
-          `,
-          [auth.shop_id]
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        payments:
-          result.rows
-
-      });
-    }
-
-
-    /* =====================================================
-       ME
-    ===================================================== */
-
-    if (
-      path === "/me" &&
-      req.method === "GET"
-    ) {
-
-      const subscription =
-        await getSubscription(
-          auth.shop_id
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        user:{
-
-          id:auth.id,
-
-          shop_id:auth.shop_id,
-
-          username:auth.username,
-
-          full_name:auth.full_name,
-
-          role:auth.role
-
-        },
-
-        shop:{
-
-          id:auth.shop_id,
-
-          name:auth.shop_name,
-
-          owner_name:auth.owner_name
-
-        },
-
-        subscription
-
-      });
-    }
-
-
-    /* =====================================================
-       LOGOUT
-    ===================================================== */
-
-    if (
-      path === "/logout" &&
-      req.method === "POST"
-    ) {
-
-      const db =
-        getPool();
-
-
-      await db.query(
-        `
-        UPDATE users
-
-        SET token = NULL
-
-        WHERE id = $1
-        `,
-        [auth.id]
-      );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        message:
-          "با موفقیت خارج شدید."
-
-      });
-    }
-
-
-    /* =====================================================
-       SHOP GET
-    ===================================================== */
-
-    if (
-      path === "/shop" &&
-      req.method === "GET"
-    ) {
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-            id,
-            name,
-            owner_name,
-            created_at
-
-          FROM shops
-
-          WHERE id = $1
-          `,
-          [auth.shop_id]
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        shop:
-          result.rows[0] ||
-          null
-
-      });
-    }
-
-
-    /* =====================================================
-       SHOP UPDATE
-    ===================================================== */
-
-    if (
-      path === "/shop" &&
-      req.method === "PUT"
-    ) {
-
-      const body =
-        await getBody(req);
-
-
-      const name =
-        String(
-          body.name || ""
-        ).trim();
-
-
-      const owner_name =
-        String(
-          body.owner_name || ""
-        ).trim();
-
-
-      if (!name) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "نام دوکان الزامی است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          UPDATE shops
-
-          SET
-            name = $1,
-            owner_name = $2
-
-          WHERE id = $3
-
-          RETURNING
-            id,
-            name,
-            owner_name
-          `,
-          [
-            name,
-            owner_name,
-            auth.shop_id
-          ]
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        shop:
-          result.rows[0]
-
-      });
-    }
-
-
-    /* =====================================================
-       PRODUCTS GET
-    ===================================================== */
-
-    if (
-      path === "/products" &&
-      req.method === "GET"
-    ) {
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-
-            id,
-            name,
-            brand,
-            model,
-            buy_price,
-            sell_price,
-            quantity,
-            created_at,
-            updated_at
-
-          FROM products
-
-          WHERE shop_id = $1
-
-          ORDER BY id DESC
-          `,
-          [auth.shop_id]
-        );
-
-
-      const subscription =
-        await getSubscription(
-          auth.shop_id
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        products:
-          result.rows,
-
-        subscription:{
-
-          plan:
-            subscription.plan,
-
-          is_pro:
-            subscription.is_pro,
-
-          product_limit:
-            subscription.product_limit,
-
-          days_remaining:
-            subscription.days_remaining
-
-        }
-
-      });
-    }
-
-
-    /* =====================================================
-       PRODUCTS POST
-    ===================================================== */
-
-    if (
-      path === "/products" &&
-      req.method === "POST"
-    ) {
-
-      /* ---------------------------------------------------
-         CHECK FREE / PRO LIMIT
-      --------------------------------------------------- */
-
-      const limitInfo =
-        await checkProductLimit(
-          auth.shop_id
-        );
-
-
-      if (!limitInfo.allowed) {
-
-        if (
-          limitInfo.subscription.is_pro
-        ) {
-
-          return send(res,403,{
-
-            success:false,
-
-            code:
-              "PRODUCT_LIMIT_REACHED",
-
-            error:
-              "به حداکثر ۵۰۰ محصول رسیده‌اید."
-
-          });
-
-        }
-
-
-        return send(res,403,{
-
-          success:false,
-
-          code:
-            "UPGRADE_REQUIRED",
-
-          error:
-            "پلن رایگان فقط اجازه ثبت ۵۰ محصول را می‌دهد. برای ثبت محصولات بیشتر، Pro را فعال کنید.",
-
-          products_count:
-            limitInfo.count,
-
-          product_limit:
-            FREE_PRODUCT_LIMIT,
-
-          pro_price_afn:
-            PRO_PRICE_AFN,
-
-          pro_days:
-            PRO_DAYS
-
-        });
-      }
-
-
-      const body =
-        await getBody(req);
-
-
-      const name =
-        String(
-          body.name || ""
-        ).trim();
-
-
-      const brand =
-        String(
-          body.brand || ""
-        ).trim();
-
-
-      const model =
-        String(
-          body.model || ""
-        ).trim();
-
-
-      const buy_price =
-        Number(
-          body.buy_price || 0
-        );
-
-
-      const sell_price =
-        Number(
-          body.sell_price || 0
-        );
-
-
-      const quantity =
-        Number(
-          body.quantity || 0
-        );
-
-
-      if (!name) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "نام محصول الزامی است."
-
-        });
-      }
-
-
-      if (
-        buy_price < 0 ||
-        sell_price < 0 ||
-        quantity < 0
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "قیمت یا تعداد نامعتبر است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          INSERT INTO products
-          (
-            shop_id,
-            name,
-            brand,
-            model,
-            buy_price,
-            sell_price,
-            quantity
-          )
-
-          VALUES
-          ($1,$2,$3,$4,$5,$6,$7)
-
-          RETURNING *
-          `,
-          [
-            auth.shop_id,
-            name,
-            brand,
-            model,
-            buy_price,
-            sell_price,
-            quantity
-          ]
-        );
-
-
-      return send(res,201,{
-
-        success:true,
-
-        product:
-          result.rows[0]
-
-      });
-    }
-
-
-    /* =====================================================
-       PRODUCT ID
-    ===================================================== */
-
-    const productMatch =
-      path.match(
-        /^\/products\/(\d+)$/
-      );
-
-
-    /* =====================================================
-       PRODUCT UPDATE
-    ===================================================== */
-
-    if (
-      productMatch &&
-      req.method === "PUT"
-    ) {
-
-      const productId =
-        Number(
-          productMatch[1]
-        );
-
-
-      const body =
-        await getBody(req);
-
-
-      const name =
-        String(
-          body.name || ""
-        ).trim();
-
-
-      const brand =
-        String(
-          body.brand || ""
-        ).trim();
-
-
-      const model =
-        String(
-          body.model || ""
-        ).trim();
-
-
-      const buy_price =
-        Number(
-          body.buy_price || 0
-        );
-
-
-      const sell_price =
-        Number(
-          body.sell_price || 0
-        );
-
-
-      const quantity =
-        Number(
-          body.quantity || 0
-        );
-
-
-      if (!name) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "نام محصول الزامی است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          UPDATE products
-
-          SET
-
-            name = $1,
-            brand = $2,
-            model = $3,
-            buy_price = $4,
-            sell_price = $5,
-            quantity = $6,
-            updated_at = CURRENT_TIMESTAMP
-
-          WHERE id = $7
-
-          AND shop_id = $8
-
-          RETURNING *
-          `,
-          [
-            name,
-            brand,
-            model,
-            buy_price,
-            sell_price,
-            quantity,
-            productId,
-            auth.shop_id
-          ]
-        );
-
-
-      if (!result.rows.length) {
-
-        return send(res,404,{
-
-          success:false,
-
-          error:
-            "محصول پیدا نشد."
-
-        });
-      }
-
-
-      return send(res,200,{
-
-        success:true,
-
-        product:
-          result.rows[0]
-
-      });
-    }
-
-
-    /* =====================================================
-       PRODUCT DELETE
-    ===================================================== */
-
-    if (
-      productMatch &&
-      req.method === "DELETE"
-    ) {
-
-      const productId =
-        Number(
-          productMatch[1]
-        );
-
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          DELETE FROM products
-
-          WHERE id = $1
-
-          AND shop_id = $2
-
-          RETURNING id
-          `,
-          [
-            productId,
-            auth.shop_id
-          ]
-        );
-
-
-      if (!result.rows.length) {
-
-        return send(res,404,{
-
-          success:false,
-
-          error:
-            "محصول پیدا نشد."
-
-        });
-      }
-
-
-      return send(res,200,{
-
-        success:true,
-
-        message:
-          "محصول حذف شد."
-
-      });
-    }
-
-
-    /* =====================================================
-       BUY
-    ===================================================== */
-
-    if (
-      path === "/buy" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await getBody(req);
-
-
-      const product_id =
-        Number(
-          body.product_id
-        );
-
-
-      const quantity =
-        Number(
-          body.quantity
-        );
-
-
-      const unit_price =
-        Number(
-          body.unit_price
-        );
-
-
-      if (
-        !product_id ||
-        quantity <= 0 ||
-        unit_price < 0
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "اطلاعات خرید نامعتبر است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const client =
-        await db.connect();
-
-
-      try {
-
-        await client.query(
-          "BEGIN"
-        );
-
-
-        const productResult =
-          await client.query(
-            `
-            SELECT *
-
-            FROM products
-
-            WHERE id = $1
-
-            AND shop_id = $2
-
-            FOR UPDATE
-            `,
-            [
-              product_id,
-              auth.shop_id
-            ]
-          );
-
-
-        if (
-          !productResult.rows.length
-        ) {
-
-          await client.query(
-            "ROLLBACK"
-          );
-
-
-          return send(res,404,{
-
-            success:false,
-
-            error:
-              "محصول پیدا نشد."
-
-          });
-        }
-
-
-        const product =
-          productResult.rows[0];
-
-
-        const oldQty =
-          Number(
-            product.quantity || 0
-          );
-
-
-        const oldBuy =
-          Number(
-            product.buy_price || 0
-          );
-
-
-        const newAverage =
-          oldQty + quantity > 0
-
-            ? (
-                (
-                  oldQty *
-                  oldBuy
-                ) +
-                (
-                  quantity *
-                  unit_price
-                )
-              ) /
-              (
-                oldQty +
-                quantity
-              )
-
-            : unit_price;
-
-
-        const newQty =
-          oldQty +
-          quantity;
-
-
-        await client.query(
-          `
-          UPDATE products
-
-          SET
-
-            quantity = $1,
-            buy_price = $2,
-            updated_at = CURRENT_TIMESTAMP
-
-          WHERE id = $3
-
-          AND shop_id = $4
-          `,
-          [
-            newQty,
-            newAverage,
-            product_id,
-            auth.shop_id
-          ]
-        );
-
-
-        const total =
-          quantity *
-          unit_price;
-
-
-        const transaction =
-          await client.query(
-            `
-            INSERT INTO transactions
-            (
-              shop_id,
-              product_id,
-              user_id,
-              type,
-              quantity,
-              unit_price,
-              total,
-              buy_cost,
-              profit
-            )
-
-            VALUES
-            (
-              $1,
-              $2,
-              $3,
-              'buy',
-              $4,
-              $5,
-              $6,
-              $7,
-              0
-            )
-
-            RETURNING *
-            `,
-            [
-              auth.shop_id,
-              product_id,
-              auth.id,
-              quantity,
-              unit_price,
-              total,
-              quantity * unit_price
-            ]
-          );
-
-
-        await client.query(
-          "COMMIT"
-        );
-
-
-        return send(res,200,{
-
-          success:true,
-
-          transaction:
-            transaction.rows[0],
-
-          average_buy_price:
-            newAverage,
-
-          new_quantity:
-            newQty
-
-        });
-
-
-      } catch(error) {
-
-        await client.query(
-          "ROLLBACK"
-        );
-
-        throw error;
-
-      } finally {
-
-        client.release();
-
-      }
-    }
-
-
-    /* =====================================================
-       SELL
-    ===================================================== */
-
-    if (
-      path === "/sell" &&
-      req.method === "POST"
-    ) {
-
-      const body =
-        await getBody(req);
-
-
-      const product_id =
-        Number(
-          body.product_id
-        );
-
-
-      const quantity =
-        Number(
-          body.quantity
-        );
-
-
-      const unit_price =
-        Number(
-          body.unit_price
-        );
-
-
-      if (
-        !product_id ||
-        quantity <= 0 ||
-        unit_price < 0
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "اطلاعات فروش نامعتبر است."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const client =
-        await db.connect();
-
-
-      try {
-
-        await client.query(
-          "BEGIN"
-        );
-
-
-        const productResult =
-          await client.query(
-            `
-            SELECT *
-
-            FROM products
-
-            WHERE id = $1
-
-            AND shop_id = $2
-
-            FOR UPDATE
-            `,
-            [
-              product_id,
-              auth.shop_id
-            ]
-          );
-
-
-        if (
-          !productResult.rows.length
-        ) {
-
-          await client.query(
-            "ROLLBACK"
-          );
-
-
-          return send(res,404,{
-
-            success:false,
-
-            error:
-              "محصول پیدا نشد."
-
-          });
-        }
-
-
-        const product =
-          productResult.rows[0];
-
-
-        const stock =
-          Number(
-            product.quantity || 0
-          );
-
-
-        const averageBuy =
-          Number(
-            product.buy_price || 0
-          );
-
-
-        if (
-          quantity > stock
-        ) {
-
-          await client.query(
-            "ROLLBACK"
-          );
-
-
-          return send(res,400,{
-
-            success:false,
-
-            error:
-              "موجودی کافی نیست. موجودی فعلی: " +
-              stock
-
-          });
-        }
-
-
-        const newStock =
-          stock -
-          quantity;
-
-
-        const total =
-          quantity *
-          unit_price;
-
-
-        const buyCost =
-          quantity *
-          averageBuy;
-
-
-        const profit =
-          total -
-          buyCost;
-
-
-        await client.query(
-          `
-          UPDATE products
-
-          SET
-
-            quantity = $1,
-            updated_at = CURRENT_TIMESTAMP
-
-          WHERE id = $2
-
-          AND shop_id = $3
-          `,
-          [
-            newStock,
-            product_id,
-            auth.shop_id
-          ]
-        );
-
-
-        const transaction =
-          await client.query(
-            `
-            INSERT INTO transactions
-            (
-              shop_id,
-              product_id,
-              user_id,
-              type,
-              quantity,
-              unit_price,
-              total,
-              buy_cost,
-              profit
-            )
-
-            VALUES
-            (
-              $1,
-              $2,
-              $3,
-              'sell',
-              $4,
-              $5,
-              $6,
-              $7,
-              $8
-            )
-
-            RETURNING *
-            `,
-            [
-              auth.shop_id,
-              product_id,
-              auth.id,
-              quantity,
-              unit_price,
-              total,
-              buyCost,
-              profit
-            ]
-          );
-
-
-        await client.query(
-          "COMMIT"
-        );
-
-
-        return send(res,200,{
-
-          success:true,
-
-          transaction:
-            transaction.rows[0],
-
-          profit,
-
-          new_quantity:
-            newStock
-
-        });
-
-
-      } catch(error) {
-
-        await client.query(
-          "ROLLBACK"
-        );
-
-        throw error;
-
-      } finally {
-
-        client.release();
-
-      }
-    }
-
-
-    /* =====================================================
-       TRANSACTIONS
-    ===================================================== */
-
-    if (
-      path === "/transactions" &&
-      req.method === "GET"
-    ) {
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-
-            t.id,
-            t.type,
-            t.quantity,
-            t.unit_price,
-            t.total,
-            t.buy_cost,
-            t.profit,
-            t.created_at,
-
-            p.name AS product_name,
-            p.brand,
-            p.model,
-
-            u.username
-
-          FROM transactions t
-
-          LEFT JOIN products p
-            ON p.id = t.product_id
-
-          LEFT JOIN users u
-            ON u.id = t.user_id
-
-          WHERE t.shop_id = $1
-
-          ORDER BY t.id DESC
-          `,
-          [auth.shop_id]
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        transactions:
-          result.rows
-
-      });
-    }
-
-
-    /* =====================================================
-       WORKERS GET
-    ===================================================== */
-
-    if (
-      path === "/workers" &&
-      req.method === "GET"
-    ) {
-
-      const db =
-        getPool();
-
-
-      const result =
-        await db.query(
-          `
-          SELECT
-
-            id,
-            username,
-            full_name,
-            role,
-            created_at
-
-          FROM users
-
-          WHERE shop_id = $1
-
-          ORDER BY id DESC
-          `,
-          [auth.shop_id]
-        );
-
-
-      return send(res,200,{
-
-        success:true,
-
-        workers:
-          result.rows
-
-      });
-    }
-
-
-    /* =====================================================
-       WORKERS POST
-    ===================================================== */
-
-    if (
-      path === "/workers" &&
-      req.method === "POST"
-    ) {
-
-      if (
-        auth.role !== "owner"
-      ) {
-
-        return send(res,403,{
-
-          success:false,
-
-          error:
-            "فقط صاحب دوکان می‌تواند کارمند اضافه کند."
-
-        });
-      }
-
-
-      const body =
-        await getBody(req);
-
-
-      const username =
-        String(
-          body.username || ""
-        ).trim();
-
-
-      const full_name =
-        String(
-          body.full_name ||
-          body.name ||
-          ""
-        ).trim();
-
-
-      const password =
-        String(
-          body.password || ""
-        );
-
-
-      if (
-        !username ||
-        !full_name ||
-        !password
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "تمام اطلاعات کارمند را وارد کنید."
-
-        });
-      }
-
-
-      if (
-        password.length < 4
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "رمز عبور حداقل ۴ حرف باشد."
-
-        });
-      }
-
-
-      const db =
-        getPool();
-
-
-      const exists =
-        await db.query(
-          `
-          SELECT id
-
-          FROM users
-
-          WHERE shop_id = $1
-
-          AND LOWER(username)
-          =
-          LOWER($2)
-          `,
-          [
-            auth.shop_id,
-            username
-          ]
-        );
-
-
-      if (
-        exists.rows.length
-      ) {
-
-        return send(res,409,{
-
-          success:false,
-
-          error:
-            "این نام کاربری قبلاً استفاده شده است."
-
-        });
-      }
-
-
-      const result =
-        await db.query(
-          `
-          INSERT INTO users
-          (
-            shop_id,
-            username,
-            password_hash,
-            full_name,
-            role
-          )
-
-          VALUES
-          ($1,$2,$3,$4,'worker')
-
-          RETURNING
-
-            id,
-            shop_id,
-            username,
-            full_name,
-            role,
-            created_at
-          `,
-          [
-            auth.shop_id,
-            username,
-            hashPassword(password),
-            full_name
-          ]
-        );
-
-
-      return send(res,201,{
-
-        success:true,
-
-        worker:
-          result.rows[0]
-
-      });
-    }
-
-
-    /* =====================================================
-       WORKER DELETE
-    ===================================================== */
-
-    const workerMatch =
-      path.match(
-        /^\/workers\/(\d+)$/
-      );
-
-
-    if (
-      workerMatch &&
-      req.method === "DELETE"
-    ) {
-
-      if (
-        auth.role !== "owner"
-      ) {
-
-        return send(res,403,{
-
-          success:false,
-
-          error:
-            "فقط صاحب دوکان می‌تواند کارمند حذف کند."
-
-        });
-      }
-
-
-      const workerId =
-        Number(
-          workerMatch[1]
-        );
-
-
-      if (
-        workerId === auth.id
-      ) {
-
-        return send(res,400,{
-
-          success:false,
-
-          error:
-            "حساب خودتان را نمی‌توانید حذف کن
+    return await handler(req, res);
+  } catch (error) {
+    console.error("DokanYar API error:", error);
+    return send(res, 500, {
+      success: false,
+      error: "خطای سرور. تنظیمات دیتابیس و لاگ Vercel را بررسی کنید.",
+    });
+  }
+};
